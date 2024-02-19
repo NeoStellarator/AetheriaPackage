@@ -14,7 +14,8 @@
             "aspect_ratio": 6
       },
       "Fuselage" : {
-            "length_fuselage" :11.3,
+            "length_fuselage" :11.3,            
+            "beta_crash": 0.5,
             "diameter_fuselage" :2,
             "length_cockpit" :2.103,
             "length_cabin" :2.7,

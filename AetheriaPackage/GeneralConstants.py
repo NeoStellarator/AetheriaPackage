@@ -54,7 +54,7 @@ gamma = 1.4                  #        O
 mach_cruise = v_cr/a_cr
 
 # Structures
-beta_crash = 0.5 # crash diameter coefficient
+# beta_crash = 0.5 # commented because it has been made visible in initial_estimate and output files
 E_mod = 70e9
 poisson = 0.3
 shear_mod =  26000000000.0

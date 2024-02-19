@@ -1,10 +1,12 @@
 import openmdao.api as om
 import time
 import json
-import json
-from AetheriaPackage.integration import run_integration, multi_run
+import sys
 import os
 
+sys.path.insert(0, os.path.abspath("."))
+
+from AetheriaPackage.integration import run_integration, multi_run
 
 
 class VTOLOptimization(om.ExplicitComponent):

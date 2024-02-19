@@ -272,7 +272,7 @@ def get_fuselage_sizing(h2tank, fuelcell, perf_par,fuselage, validate= False):
     if validate:
         print(f"|{fuselage.volume_powersys=:^20.4e}|")
     # l_tail, upsweep, bc, hc, hf, bf, AR, l_tank = minimum_tail_length(fuselage.height_fuselage_inner, fuselage.width_fuselage_inner, const.beta_crash, h2tank.volume(perf_par.energyRequired/3.6e6) ,np.linspace(1, 7, 40), const.ARe, const.n_tanks)
-    l_tail, upsweep, bc, hc, hf, bf, AR, l_tank = minimum_tail_length(fuselage.height_fuselage_inner, fuselage.width_fuselage_inner, const.beta_crash, fuselage.volume_powersys ,np.linspace(1, 9, 100), const.ARe, const.n_tanks, plot= validate)
+    l_tail, upsweep, bc, hc, hf, bf, AR, l_tank = minimum_tail_length(fuselage.height_fuselage_inner, fuselage.width_fuselage_inner, fuselage.beta_crash, fuselage.volume_powersys ,np.linspace(1, 9, 100), const.ARe, const.n_tanks, plot=validate)
     radius = compute_tank_radius(fuselage.volume_powersys, 2, l_tank)
 
     fuselage.length_tail = l_tail

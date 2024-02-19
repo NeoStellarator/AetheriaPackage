@@ -55,7 +55,7 @@ class Aero(BaseModel):
 
 class AircraftParameters(BaseModel):
     label: str = "Aircraft"
-    MTOM: float 
+    MTOM: float
     Stots: float # Total area of wing reference area
     prop_eff: float  # Propulsive efficiency
     glide_slope: float 
@@ -269,7 +269,8 @@ class FuelCell:
 
 class Fuselage(BaseModel):
     label : str = "Fuselage"
-    length_fuselage: float 
+    length_fuselage: float
+    beta_crash: float
     length_tail: float 
     diameter_fuselage: float 
     upsweep: float 
