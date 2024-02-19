@@ -78,7 +78,7 @@ def run_integration(file_path, counter_tuple=(1,1), json_path= None, dir_path = 
     aero.downwash_angle_stall =  np.average(weissinger_l(wing, aero.alpha_approach, 20)[3])
 
     #-------------------- propulsion ----------------------------
-    propcalc(aero, mission=mission, engine= engine, h_cruise= const.h_cruise) #TODO update
+    propcalc(aero, mission=mission, engine=engine, h_cruise= const.h_cruise)
     #-------------------- Flight Performance --------------------
     get_performance_updated(aero, mission, wing,engine, power)
 
@@ -119,7 +119,6 @@ def run_integration(file_path, counter_tuple=(1,1), json_path= None, dir_path = 
         fuselage.dump(json_path)
         stability.dump(json_path)
         power.dump(json_path)
-
 
     #--------------------------------- Log all variables from current iterations ----------------------------------
 

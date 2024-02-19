@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import json
 import pandas as pd
 from pydantic import BaseModel, FilePath
+from typing import Optional
 import pathlib as pl
 import AetheriaPackage.GeneralConstants as const
 
@@ -579,6 +580,45 @@ class Wing(BaseModel):
             data = json.load(jsonFile)
 
         data["Wing"] = self.model_dump()
+
+        with open(file_path, "w") as jsonFile:
+            json.dump(data, jsonFile, indent=4)
+
+
+# Propeller structure from tuduam module
+class Propeller(BaseModel):
+    n_blades:float
+    """The number of blades on the propellor"""    
+    r_prop:float
+    """"Propeller radius"""
+    rpm_cruise:float 
+    """"The rotations per minute during cruise flight"""
+    xi_0:float
+    """"Non-dimensional hub radius (r_hub/R) [-]"""
+    chord_arr: Optional[list] = None
+    """"Array with the chords at each station"""
+    rad_arr: Optional[list] = None
+    """"Radial coordinates for each station"""
+    pitch_arr: Optional[list] = None
+    """"Array with the pitch at each station"""
+    tc_ratio:Optional[float] = None
+    """Thickness over chord ratio of the airfoil"""    
+
+    # to be consistent with the rest of datastructure file, these methods have been copied from above 
+    @classmethod
+    def load(cls, file_path:FilePath):
+        with open(file_path) as jsonFile:
+            data = json.load(jsonFile)
+        try:
+            return cls(**data["Propeller"])
+        except:
+            raise Exception(f"There was an error when loading in {cls}")
+
+    def dump(self, file_path: FilePath):
+        with open(file_path) as jsonFile:
+            data = json.load(jsonFile)
+
+        data["Propeller"] = self.model_dump()
 
         with open(file_path, "w") as jsonFile:
             json.dump(data, jsonFile, indent=4)
