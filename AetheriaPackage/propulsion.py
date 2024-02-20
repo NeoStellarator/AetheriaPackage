@@ -15,7 +15,7 @@ from   AetheriaPackage.ISA_tool import ISA
 
 def propcalc(aero, mission: AircraftParameters, engine: Engine, h_cruise: float, mesh_size=5):
     
-    data_path = r'input\Propulsion\propellerairfoil\merge'
+    data_path = r'input\Propulsion\propellerairfoil'
     coord_path = r'input\Propulsion\wortman.dat'
     
     n_prop = 6 
@@ -112,13 +112,16 @@ def extract_data_dir(dir_path:str) -> np.ndarray:
         with open(os.path.join(dir_path,file), "r") as f:
             write = False
             for line in f.readlines():
-                if  line.count("-") > 3:
+                if  line.count("-") > 30:
                     write = True
+                    continue
+                if line == '\n':
                     continue
                 if write:
                     value_lst = [float(value) for value in line.split()]
                     value_lst.append(reyn)
                     data_points.append(value_lst)
+    
     return np.array(data_points)
 
 

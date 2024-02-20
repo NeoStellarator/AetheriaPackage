@@ -15,7 +15,7 @@
       },
       "Fuselage" : {
             "length_fuselage" :11.3,            
-            "beta_crash": 0.5,
+            "beta_crash": 0.45,
             "diameter_fuselage" :2,
             "length_cockpit" :2.103,
             "length_cabin" :2.7,
@@ -27,7 +27,7 @@
             "width_fuselage_outer" :2.2
       },
       "AircraftParameters" : {
-            "MTOM": 2500.586143708877,
+            "MTOM": 2500,
             "OEM": 2000.586143708877,
             "prop_eff":0.82,
             "v_stall" :45,
