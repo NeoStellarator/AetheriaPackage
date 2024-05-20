@@ -112,7 +112,7 @@ def extract_data_dir(dir_path:str) -> np.ndarray:
         with open(os.path.join(dir_path,file), "r") as f:
             write = False
             for line in f.readlines():
-                if  line.count("-") > 30:
+                if  line.count("-") > 10:
                     write = True
                     continue
                 if line == '\n':

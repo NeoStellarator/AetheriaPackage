@@ -272,7 +272,7 @@ def get_fuselage_sizing(h2tank, fuelcell, perf_par,fuselage, validate= False):
                                                                       fuselage.width_fuselage_inner, 
                                                                       fuselage.beta_crash, 
                                                                       fuselage.volume_powersys,
-                                                                      np.linspace(1, 11, 130), 
+                                                                      np.linspace(1, 30, 291), 
                                                                       const.ARe, const.n_tanks, plot=validate)
     radius = compute_tank_radius(fuselage.volume_powersys, 2, l_tank)
 

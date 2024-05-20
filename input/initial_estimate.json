@@ -1,6 +1,6 @@
 {
       "Wing" : {
-            "aspect_ratio" :9.4,
+            "aspect_ratio" : 9.4,
             "wing_weight": 168.99698877288353,
             "taper" :0.45,
             "washout" :0,
@@ -15,7 +15,7 @@
       },
       "Fuselage" : {
             "length_fuselage" :11.3,            
-            "beta_crash": 0.45,
+            "beta_crash": 0.50,
             "diameter_fuselage" :2,
             "length_cockpit" :2.103,
             "length_cabin" :2.7,
@@ -27,7 +27,7 @@
             "width_fuselage_outer" :2.2
       },
       "AircraftParameters" : {
-            "MTOM": 2500,
+            "MTOM": 2600,
             "OEM": 2000.586143708877,
             "prop_eff":0.82,
             "v_stall" :45,

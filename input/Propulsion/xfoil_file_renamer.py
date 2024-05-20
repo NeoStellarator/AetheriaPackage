@@ -1,7 +1,7 @@
 import os
 import re
 
-target_path = r'input\Propulsion\propellerairfoil'
+target_path = r'input\Propulsion\WORTMANN FX 63-137 data'
 
 airfoil = 'WORTMANN FX 63-137'
 repeated_files = []
@@ -16,11 +16,12 @@ for old_fname in os.listdir(target_path):
     # extract Reynold's number
     Re_num = [i for i in re.split('_', fname) if i.count('Re') == 1]
     assert len(Re_num) == 1
-    Re_num = int(float(Re_num[0][2:])) # this avoids a casting issue
+    Re_num = float(Re_num[0][2:]) 
 
     # mutliply by 1e6 if necessary (format from XFLR5 or XFOIL)
     if Re_num < 100: Re_num *= 1e6
 
+    Re_num = int(Re_num) # cast into an integer to avoidissues
     # construct new filename
     new_fname = f'{airfoil}_Re{Re_num}.txt'
 
