@@ -64,10 +64,13 @@ ultimate_tensile_stress = 640000000.0
 m_crip = 0.85
 pb = 2.5
 rho_material = 2710
-g= 5
+g = 5
 fuselage_margin = 0.2 
 eigenfrequency_lim_pylon = 20
-ARe = 2.8 # Aspect ration end of tail cone
+ARe = 2.8 # Aspect ratio end of tail cone (DEPRECATD: SHOULD NOT BE USED)
+hf = 0.2 # end-of-tail height
+bf = 0.2 # end-of tail width (when linear_rel = 'b')
+linear_rel = 'AR' # assumed second relationship for tail optimizer
 n_tanks = 2 # The amount of tanks
 cg_fuselage = 0.45
 

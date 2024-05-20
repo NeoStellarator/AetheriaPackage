@@ -1,155 +1,225 @@
-import AetheriaPackage.GeneralConstants as const
-from AetheriaPackage.GeneralConstants import *
-from AetheriaPackage.data_structs import *
-import seaborn as sns
 import os
+from functools import partial
+from typing import List
+
 import numpy as np
+import scipy as sp
 import matplotlib.pyplot as plt
 from matplotlib.colors import BoundaryNorm
-from scipy.optimize import minimize
+import seaborn as sns
 
+import AetheriaPackage.GeneralConstants as const
+import AetheriaPackage.tail_plotter_tools as tpt
+from AetheriaPackage.GeneralConstants import *
+from AetheriaPackage.data_structs import *
+from AetheriaPackage.basic_functions import Linear
+# My Tail Optimizer
 
-def compute_tank_radius(V, n, l_tank):
-    """_summary_
+def get_tank_radius(l_tank:float, V_tank:float, n:int, **kwargs)->float:
+    '''
+    Function that determines the radius of the tank given the length, volume and number of cylinders.
+    It makes use of the Newton method implemented in scipy.optimize.root_scalar.
+    
+    Parameters
+    ----------
+    l_tank : FLOAT
+        Tank length
+    V_tank : FLOAT
+        Tank volume
+    n : INT
+        Number of cylinders in the tank
+    **kwargs
+        Any other arguments to be passed to root-finding algorithm.
+    '''
 
-    :param V: volume of tank
-    :param n: number of tanks
-    :param l_tank:  length of tank
-    :return: returns radius of tank
-    """    
+    def tank_volume_function(r_tank, l_tank, V_tank, n):
+        '''
+        Function f(x) whose root is the tank radius.
+        x    ->  r_tank
+        args ->  [l_tank, V_tank, n]
 
-    roots = np.roots([-2*np.pi / 3, np.pi * l_tank, 0, -V/n]) # Find positive roots of cubic function of Tank Volume (two tanks)
-    r = np.min(roots[roots > 0]) # Select the correct root of the equation
-    return r
+        f(x) = V_tank - n(pi r_tank^2 (l_tank-2r_tank) + 4/3 pi r_tank^3) = 0
+            = V_tank/(n pi) - r_tank^2 (l_tank - 2/3 r_tank) = 0        
+        '''
+        return V_tank/(n*np.pi) -r_tank**2 *(l_tank - 2/3*r_tank)
 
-"""CALCULATE TAIL LENGTH BASED ON BETA AND ASPECT RATIO"""
-def find_tail_length(h0, b0, Beta, V, l, AR, n):
-    r = compute_tank_radius(V, n, l) 
-    bc = 2 * n * r # width of crashed fuselage at end of tank
-    hc = bc / AR # height of crashed fuselage at end of tank
-    A_f = bc ** 2 / (AR * Beta ** 2) # area of fuselage at end of tank
-    hf = np.sqrt(A_f / AR) # height of fuselage at end of tank
-    bf = A_f/hf # width of fuselage at end of tank
-    l_t = h0 * l / (h0 - hf) # length of tail
-    upsweep = np.arctan2((h0 - hf), l) # upsweep angle
-    return l_t, upsweep, bc, hc, hf, bf
+    def derivative_tank_volume_function(r_tank, l_tank, V_tank, n):
+        '''
+        Derivative of 'tank_volume_function' with respect to r_tank.
+        x    ->  r_tank
+        args ->  [l_tank, V_tank, n]
+        '''
+        derivative = 2*r_tank*(r_tank-l_tank)
 
-"""CONVERGE TAIL LENGTH BY CONVERGING ASPECT RATIO"""
-def converge_tail_length(h0, b0, Beta, V, l, ARe, n):
-    AR0 = b0/h0
-    AR = AR0
-    error, i = 1, 0 # iteration error and number
-    ARarr = [] # aspect ratio array
-    while error > 0.005: # stop when error is smaller than 0.5%
-        ARarr.append(AR)
-        tail_data = list(find_tail_length(h0, b0, Beta, V, l, AR, n))
-        AR = l / tail_data[0] * (ARe - AR0) + AR0
-        error = np.abs((ARarr[-1] - AR)/AR)
-        i += 1
-        if i > 200: # stop if iteration number if more than 200 (no convergence)
-            error = 0
-    #print("Converged after: ", i, "iterations to AR: ", AR)
-    tail_data.append(AR)
-    return tail_data # returns tail length, upsweep, bc, hc, hf, bf
-
-"""MAKE 2D SENSITIVY PLOT FOR BETA AND ARe"""
-def plot_variable(h0, b0, V, l_tank, n,  parameter, parameter_values, fixed_parameter, fixed_value):
-    l_tail = []
-
-    for i in range(len(l_tank)):
-        l_tail_row = []
-        for j in range(len(parameter_values)):
-            if parameter == 'ARe':
-                ARe = parameter_values[j]
-                Beta = fixed_value
-            elif parameter == 'Beta':
-                ARe = fixed_value
-                Beta = parameter_values[j]
-
-            l_t, upsweep, bc, hc, hf, bf, AR = converge_tail_length(h0, b0, Beta, V, l_tank[i], ARe, n)
-
-            if 1 <= l_t <= 7.5 and hf < h0 and l_t > l_tank[i] and bf < b0  and AR > 0 and bc > 0 and hf > 0 and bf > 0 and hc > 0 and hc>bc/n:
-                #and hc > bc / n
-                l_tail_row.append(l_t)
-            else:
-                l_tail_row.append(np.nan)
-
-        l_tail.append(l_tail_row)
-
-    l_tank, parameter_values = np.meshgrid(l_tank, parameter_values)
-    l_tail = np.array(l_tail)
-
-    # Plot the colored plot
-    fig, ax = plt.subplots()
-
-    if parameter == 'ARe':
-        cmap = 'viridis_r'
-        start_value = 3  # Set the desired start value
-
-    elif parameter == 'Beta':
-        cmap = 'viridis_r'
-        start_value = 2.5  # Set the desired start value
-
-    levels = np.arange(start_value, np.nanmax(l_tail) + 0.51, 0.5)  # Set the colorbar range to exactly 0.4
-
-    norm = BoundaryNorm(levels, ncolors=plt.cm.get_cmap(cmap).N)
-
-    c = ax.contourf(l_tank, parameter_values, l_tail.T, levels=levels, cmap=cmap, norm=norm)
-
-    ax.set_xlabel('Tank Length [m]')
-    ax.set_ylabel(parameter)
-    ax.set_title(f'Fixed {fixed_parameter}: {fixed_value}')
-
-    # Add colorbar
-    cbar = plt.colorbar(c, label='Tail Length [m]')
-    cbar.set_ticks(levels)
-    cbar.set_ticklabels([f'{tick:.1f}' for tick in levels])  # Format tick labels with two decimal places
-
-    plt.savefig(os.path.join(os.path.expanduser("~"), "Downloads", "sensitivity_tail_" + parameter + "_" + str(fixed_value) +  ".pdf"), bbox_inches= "tight")
-    plt.show()
-
-def minimum_tail_length(h0, b0, Beta, V, l_tank, ARe, n, plot= False):
-    l_tail = []
-    l_tank = list(l_tank)
-    indices_to_remove = []  # Track indices to be removed
-
-    for i in range(len(l_tank)):
-        l_t, upsweep, bc, hc, hf, bf, AR = converge_tail_length(h0, b0, Beta, V, l_tank[i], ARe, n)
-        l_tail.append(l_t)
-
-        if l_t < l_tank[i] or l_t > 8 or AR < 0 or bf < 0 or hf < 0 or hc < 0 or bc < 0 or hc<bc/n or bf>b0 or hf>h0:
-            indices_to_remove.append(i)
-
-    if plot:
-        plt.plot(l_tank, l_tail, label= "tail length")
-        plt.xlabel("Tank length")
-        plt.ylabel("Tail length")
-        plt.grid()
-        plt.legend()
-        plt.show()
-
-    # Remove values from l_tail based on indices to remove
-    l_tail = [l for i, l in enumerate(l_tail) if i not in indices_to_remove]
-
-    # Remove values from l_tank based on indices to remove
-    l_tank = [l for i, l in enumerate(l_tank) if i not in indices_to_remove]
-
-    if plot:
-        plt.plot(l_tail, l_tank)
-        plt.xlabel("Tail length [m]")
-        plt.ylabel("Tank length [m]")
-        plt.show()
-
-    l_tail = np.array(l_tail)
-    if len(l_tail) > 0:
-        min_index = np.argmin(l_tail)
-        tail_data = converge_tail_length(h0, b0, Beta, V, l_tank[min_index], ARe, n)
-        tail_data.append(l_tank[min_index])
+        if derivative == 0:
+            # Derivative is zero when r_tank = 0 or r_tank = l_tank
+            raise ValueError('Zero derivative in Newton Method!')
+        
+        return derivative
+    
+    result = sp.optimize.root_scalar(tank_volume_function, fprime=derivative_tank_volume_function, 
+                                     method='newton', args=(l_tank, V_tank, n), x0=l_tank/4, **kwargs)
+    if result.converged:
+        return result.root
     else:
-        raise Exception("No possbile tail length")
+        raise ValueError(f'Cannot compute tank radius. Cause of termination: {result.flag}')
 
 
-    return tail_data
+
+def optimize_tail_length(beta:float, V_tank:float, h0:float, b0:float, 
+                         hf:float, bf:float, n:int, linear_rel:str='AR', 
+                         plot:bool=False):
+    '''
+    Function to minimize the tail length, given the crash coefficient, tank volume, start-
+    of-tail and end-of-tail dimensions, number of cylinders in the tank and the assumed second
+    linear constraint (AR or width).
+
+    The SLSQP algorithm implemented in scipy.optimize.minimize is used. The tail can be plotted 
+    if the parameter plot is set to True.
+
+    Parameters
+    ----------
+    beta: FLOAT [-]
+        Crash diameter coefficient, between 0 and 1.
+    V_tank : FLOAT [m3]
+        H2 tank volume.
+    h0 : FLOAT [m]
+        Start-of-tail height (inner fuselage height)
+    b0 : FLOAT [m]
+        Start-of-tail width (inner fuselage width).
+    hf : FLOAT [m]
+        End-of-tail height.
+    bf : FLOAT [m]
+        End-of-tail width. If linear_rel='AR', this value is reset such that the tail width is tangent
+        to the rest of the fuselage, and avoiding the bulging effect caused by the quadratic nature of b
+        that arises when linear_rel='AR'.
+    n : INT [-]
+        Number of cylinders in the H2 tank.
+    linear_rel : STR ['AR' or 'b', 'AR' by default]
+        Assumed second linear relationship for the optimizer, implemented as a constraint. Can be either
+        'AR' for a linear variation of aspect ratio with tailwise position (implying a quadratic 
+        vaiation of the width with tailwise position) or 'b' for a linear variation of
+        width with tailwise position.
+    plot: BOOL (default FALSE)
+        Specify whether to plot the tail.
+    
+    Inner Variables
+    ---------------
+    The design vector x used in the optimizer is structured as follows:
+        x = [l_tank, hk, bk, hc, bc]
+        0      1   2   3   4 
+    l_tank: FLOAT [m]
+        H2 tank length.
+    hk : FLOAT [m]
+        Tail height at the end of the H2 tank.
+    bk : FLOAT [m]
+        Tail width at the end of the H2 tank.
+    hc : FLOAT [m]
+        Tail height at the end of the H2 tank in the event of a crash.
+    bc : FLOAT [m]
+        Tail width at the end of the H2 tank in the event of a crash.
+    
+    
+    Returns
+    -------
+    x = l_tail, l_tank, hk, bk, hc, bc, upsweep, r_tank
+    l_tail : FLOAT [m]
+        Tail length
+    l_tank : see Inner Variables
+    hk : see Inner Variables
+    bk : see Inner Variables
+    hc : see Inner Variables
+    bc : see Inner Variables
+    upsweep : FLOAT [rad]
+        Upsweep angle
+    r_tank : FLOAT [m]
+        H2 cylinder radius.
+    '''
+
+    def get_tail_size(x:List, h0:float, hf:float)->float:
+        '''
+        Function to compute the length of the tail, assuming a linear relationship
+        of height with tail-wise position. This is the objective function used in 
+        the optimizer.
+
+        Recall that the design vector is structured as follows
+        x = [l_tank, hk, bk, hc, bc]
+            0      1   2   3   4 
+        
+        The computed function is:
+        l_tail = l_tank*(hf-h0)/(hk-h0)
+        '''
+        return x[0]*(hf-h0)/(x[1]-h0)
+
+
+    def second_linear_constraint(x:List, h0:float, b0:float, hf:float, bf:float, var:str='AR')->float:
+        '''
+        Function for the second linear constraint. The objective function accounts for 
+        a linear variation of height; this function is used as a constraint in the
+        optimizer and accounts for either a linear varition of width or a linear variation
+        of aspect ratio.
+
+        Recall that the design vector is structured as follows
+        x = [l_tank, hk, bk, hc, bc]
+            0      1   2   3   4 
+        
+        '''
+
+        l_tail = get_tail_size(x, h0, hf)
+        l_tank, hk, bk, = x[0], x[1], x[2]
+
+        if var == 'b':
+            b = Linear(0, l_tail, b0, bf)
+            f2 = b(l_tank)-bk
+        elif var == 'AR':
+            AR = Linear(0, l_tail, b0/h0, bf/hf) 
+            f2 = AR(l_tank) - bk/hk
+        
+        return f2
+
+
+    # ensure one-time continuity of width distri bution at beginning of tial
+    if linear_rel == 'AR':
+        bf = hf*(b0/h0)*(2-hf/h0)
+    
+    # Already setting the known values into the functions
+    p_get_tank_radius = partial(get_tank_radius, V_tank=V_tank, n=n)
+    p_get_tail_size   = partial(get_tail_size, h0=h0, hf=hf)
+    p_second_linear_constraint  = partial(second_linear_constraint, h0=h0, b0=b0, hf=hf, bf=bf, var=linear_rel)
+
+    # Defining Bounds
+    bnds = ((0, None), (0, h0), (0, b0), (0, None), (0, None))
+
+    # Defining Constraints: recall that 'inequality means that it is to be non-negative' 
+    cons = (
+            {'type': 'ineq', 'fun': lambda x: x[3]-2*p_get_tank_radius(x[0])},   # crash region larger than hydrogen tank (height)
+            {'type': 'ineq', 'fun': lambda x: x[4]-2*n*p_get_tank_radius(x[0])}, # crash region larger than hydrogen tank (width)
+            {'type': 'ineq', 'fun': lambda x: x[0]-2*p_get_tank_radius(x[0])}  , # prevent tank from achieving unfeasable volume
+            {'type': 'eq'  , 'fun': lambda x: beta**2-(x[3]*x[4])/(x[1]*x[2])} , # beta relationship crashed-uncrashed region
+            {'type': 'eq'  , 'fun': lambda x: x[2]/x[1] - x[4]/x[3]}           , # assumption that the aspect ratio during crash is constant
+            {'type': 'eq'  , 'fun': p_second_linear_constraint},                 # second linear constraint
+            )
+    
+    x0 = [V_tank/(0.4*b0*0.4*h0), 0.8*h0, 0.8*b0, 0.4*h0, 0.4*b0]
+    
+    result = sp.optimize.minimize(p_get_tail_size, x0, method='SLSQP', bounds=bnds, constraints=cons, options={'maxiter':1000}, tol=0.001)
+    
+    if result.success:
+        l_tank, hk, bk, hc, bc  = result.x
+        r_tank = get_tank_radius(l_tank, V_tank, 2)
+        l_tail = result.fun
+        upsweep = np.arctan2((h0 - hf), l_tank) # upsweep angle
+
+        if plot: 
+            try:
+                tpt.plot_complete_tail(l_tail, l_tank, h0, b0, hc, bc, hf, bf, r_tank, linear_rel)
+            except IndexError:
+                pass
+
+        return l_tail, l_tank, hk, bk, hc, bc, upsweep, r_tank
+    
+    else:
+        raise RuntimeError(f'Tail optimization failed: {result.message}')
 
 def stress_strain_curve(stress_peak, strain_peak, plain_stress, e_d):
     E = stress_peak/strain_peak
@@ -258,7 +328,7 @@ def crash_box_height_convergerence(plateau_stress, yield_stress, e_0, e_d, v0, s
 
 
 
-def get_fuselage_sizing(h2tank, fuelcell, perf_par,fuselage, validate= False):
+def get_fuselage_sizing(h2tank, fuelcell, perf_par,fuselage, validate=False, plot_tail=False):
 
     crash_box_height, crash_box_area = crash_box_height_convergerence(const.s_p, const.s_y, const.e_0, const.e_d, const.v0, const.s0, perf_par.MTOM)
     fuselage.height_fuselage_inner = fuselage.height_cabin + crash_box_height
@@ -267,18 +337,20 @@ def get_fuselage_sizing(h2tank, fuelcell, perf_par,fuselage, validate= False):
     fuselage.volume_powersys = h2tank.volume(perf_par.mission_energy)
     if validate:
         print(f"|{fuselage.volume_powersys=:^20.4e}|")
-    # l_tail, upsweep, bc, hc, hf, bf, AR, l_tank = minimum_tail_length(fuselage.height_fuselage_inner, fuselage.width_fuselage_inner, const.beta_crash, h2tank.volume(perf_par.energyRequired/3.6e6) ,np.linspace(1, 7, 40), const.ARe, const.n_tanks)
-    l_tail, upsweep, bc, hc, hf, bf, AR, l_tank = minimum_tail_length(fuselage.height_fuselage_inner, 
-                                                                      fuselage.width_fuselage_inner, 
-                                                                      fuselage.beta_crash, 
-                                                                      fuselage.volume_powersys,
-                                                                      np.linspace(1, 30, 291), 
-                                                                      const.ARe, const.n_tanks, plot=validate)
-    radius = compute_tank_radius(fuselage.volume_powersys, 2, l_tank)
+    # TODO update this code!!!
+    l_tail, l_tank, hk, bk, hc, bc, upsweep, r_tank = optimize_tail_length(beta=fuselage.beta_crash,
+                                                                           V_tank=fuselage.volume_powersys,
+                                                                           h0=fuselage.height_fuselage_inner,
+                                                                           b0=fuselage.width_fuselage_inner,
+                                                                           hf=const.hf,
+                                                                           bf=const.bf,
+                                                                           n=const.n_tanks,
+                                                                           linear_rel=const.linear_rel,
+                                                                           plot=plot_tail)
 
     fuselage.length_tail = l_tail
     fuselage.length_tank = l_tank
-    fuselage.tank_radius = radius
+    fuselage.tank_radius = r_tank
     fuselage.upsweep = upsweep 
     fuselage.bc = bc
     fuselage.crash_box_area =  crash_box_area
@@ -337,7 +409,7 @@ class PylonSizing():
                 )
         bnds = ((0.095, 0.1), (0.001,0.2))
 
-        res = minimize(self.weight_func, x0, method='SLSQP', bounds=bnds, constraints=cons)
+        res = sp.optimize.minimize(self.weight_func, x0, method='SLSQP', bounds=bnds, constraints=cons)
 
         return res
 
