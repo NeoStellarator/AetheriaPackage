@@ -242,8 +242,6 @@ def size_vtail_opt(WingClass, FuseClass, VTailClass, StabClass, Aeroclass, Aircr
 
     return WingClass, FuseClass, VTailClass, StabClass
 
-
-
 def stabcg(ShS, x_ac, CLah, CLaAh, depsda, lh, c, VhV2, SM):
     """" 
     Short desription of the gfunction
@@ -333,7 +331,6 @@ def downwash_k(lh, b):
     k = 1 + (1 / (np.sqrt(1 + (lh / b) ** 2))) * (1 / (np.pi * lh / b) + 1)
     return k
 
-
 def downwash(k, CLa, A):
     """
     k: factor calculated with downwash_k()
@@ -342,7 +339,6 @@ def downwash(k, CLa, A):
     """
     depsda = k * CLa / (np.pi*A)
     return depsda
-
 
 def wing_location_horizontalstab_size(WingClass, FuseClass, Aeroclass, VtailClass, AircraftClass, PowerClass, EngineClass, StabClass, A_h,  plot=False, CLh_approach = None, stepsize = 0.002, cg_shift = 0):
     """" 
@@ -488,7 +484,6 @@ def get_c_control_surface_to_c_vee_ratio(tau):
     ce_c_ratio_of_tail=interp_function(tau)
     return float(ce_c_ratio_of_tail)
 
-    
 def get_tail_dihedral_and_area(Lambdah2,S_hor,Fuselage_volume,S,b,l_v,AR_h,taper_h,Cn_beta_req=0.0571,beta_h=1,eta_h=0.95):
     """" 
     Short desription of the gfunction
@@ -500,7 +495,6 @@ def get_tail_dihedral_and_area(Lambdah2,S_hor,Fuselage_volume,S,b,l_v,AR_h,taper
     S_vee=S_ver+S_hor
     v_angle=np.arctan(np.sqrt(S_ver/S_hor))
     return v_angle, S_vee
-
 
 #YOU ONLY NEED THIS LAST FUNCTION. THE OTHERS ABOVE ARE SUBFUNCTIONS FOR THE NEXT FUNCTION.
 
@@ -553,22 +547,17 @@ def get_control_surface_to_tail_chord_ratio(wing, fuselage, vtail, aero,  CL_h, 
     }
     return dict_output
 
-
 def CZ_adot(CLah,Sh,S,Vh_V2,depsda,lh,c):
 
     CZ_adot=-CLah*Sh/S*Vh_V2*depsda*lh/c
 
     return CZ_adot
 
-
 def Cm_adot(CLah,Sh,S,Vh_V2,depsda,lh,c):
 
     Cm_adot=-CLah*Sh/S*Vh_V2*depsda*(lh/c)**2
 
     return Cm_adot
-
-
-
 
 def airfoil_to_wing_CLa(cla, A):
     """
@@ -583,7 +572,6 @@ def airfoil_to_wing_CLa(cla, A):
     cLa = cla / (1 + cla / (np.pi * A))
     return cLa
 
-
 def downwash_k(lh, b):
     """
     lh: distance from wing ac to horizontal tail [m]
@@ -595,7 +583,6 @@ def downwash_k(lh, b):
     k = 1 + (1 / (np.sqrt(1 + (lh / b) ** 2))) * (1 / (np.pi * lh / b) + 1)
     return k
 
-
 def downwash(k, CLa, A):
     """
     k: factor calculated with downwash_k()
@@ -604,7 +591,6 @@ def downwash(k, CLa, A):
     """
     depsda = k * CLa / (np.pi*A)
     return depsda
-
 
 def Cma_fuse(Vfuse, S, c):
     """
@@ -618,7 +604,6 @@ def Cma_fuse(Vfuse, S, c):
     Cma_fuse = 2 * Vfuse / (S * c)
     return Cma_fuse
 
-
 def Cnb_fuse(Vfuse, S, b):
     """
     Vfuse: fuselage volume [-]
@@ -630,7 +615,6 @@ def Cnb_fuse(Vfuse, S, b):
     """
     Cnb_fuse = -2 * Vfuse / (S * b)
     return Cnb_fuse
-
 
 def CDacalc(CL0, CLa, A):
     """
@@ -644,7 +628,6 @@ def CDacalc(CL0, CLa, A):
     CDa = 2 * CL0 * CLa / (np.pi * A)
     return CDa
 
-
 def Cxa(CL0, CDa):
     """
     CL0: wing lift at 0 angle of attack [-]
@@ -656,7 +639,6 @@ def Cxa(CL0, CDa):
     Cxa = CL0 - CDa
     return Cxa
 
-
 def Cxq():
     """
     returns
@@ -664,7 +646,6 @@ def Cxq():
     ALWAYS 0
     """
     return 0
-
 
 def Cza(CLa, CD0):
     """
@@ -676,7 +657,6 @@ def Cza(CLa, CD0):
     """
     Cza = -CLa - CD0
     return Cza
-
 
 def Vhcalc(Sh, lh, S, c):
     """
@@ -691,7 +671,6 @@ def Vhcalc(Sh, lh, S, c):
     Vh = Sh * lh / (S * c)
     return Vh
 
-
 def Czq(CLah, Vh):
     """
     CLah: Horizontal stabiliser CL_alpha [rad^-1]
@@ -702,7 +681,6 @@ def Czq(CLah, Vh):
     """
     Czq = -2 * CLah * Vh
     return Czq
-
 
 def Cma(CLa, lcg, c, CLah, Vh, depsda, Cmafuse):
     """
@@ -720,7 +698,6 @@ def Cma(CLa, lcg, c, CLah, Vh, depsda, Cmafuse):
     Cma = CLa * lcg / c - CLah * Vh * (1 - depsda) + Cmafuse
     return Cma
 
-
 def Cmq(CLah, Vh, lh, c, Cmqfuse):
     """
     CLah: horizontal stabiliser CL_alpha [rad^-1]
@@ -735,7 +712,6 @@ def Cmq(CLah, Vh, lh, c, Cmqfuse):
     Cmq = -2 * CLah * Vh * lh / c + Cmqfuse
     return Cmq
 
-
 def Vvcalc(Sv, lv, S, b):
     """
     Sv: surface area of vertical tail [m^2]
@@ -749,7 +725,6 @@ def Vvcalc(Sv, lv, S, b):
     Vv = Sv * lv / (S * b)
     return Vv
 
-
 def Cyb(Cnb, b, lv): #Eq 8-16 FD reader
     """
     Sv: surface area of vertical tail [m^2]
@@ -760,7 +735,6 @@ def Cyb(Cnb, b, lv): #Eq 8-16 FD reader
     Cyb: Y-force coefficient derivative wrt sideslip angle [rad^-1]
     """
     return -Cnb * b / lv
-
 
 def Cyr(Vv, CLav):
     """
@@ -773,7 +747,6 @@ def Cyr(Vv, CLav):
     Cyr = 2 * Vv * CLav
     return Cyr
 
-
 def Cyp():
     """
     returns
@@ -781,7 +754,6 @@ def Cyp():
     ALWAYS 0
     """
     return 0
-
 
 def Clb(CLa, dihedral, taper):
     """
@@ -795,7 +767,6 @@ def Clb(CLa, dihedral, taper):
     Clb = -CLa * dihedral * (1 + 2 * taper) / (6 * (1 + taper))
     return Clb
 
-
 def Clp(CLa, taper):
     """
     CLa: wing CL_alpha [rad^-1]
@@ -807,7 +778,6 @@ def Clp(CLa, taper):
     Clp = -CLa * (1 + 3 * taper) / (12 * (1 + taper))
     return Clp
 
-
 def Clr(CL0):
     """
     CL0: wing CL at 0 angle of attack [-]
@@ -817,7 +787,6 @@ def Clr(CL0):
     """
     return CL0 / 4
 
-
 def Cnp(CL0):
     """
     CL0: wing CL at 0 angle of attack [-]
@@ -826,7 +795,6 @@ def Cnp(CL0):
     Cnp: yaw-moment coefficient derivative wrt roll rate [rad^-1]
     """
     return -CL0 / 8
-
 
 def Cnr(CLav, Vv, lv, b):
     """
@@ -862,7 +830,6 @@ def Cz0(W,theta_0,rho,V,S):
 def Cx0(W,theta_0,rho,V,S):
     Cx0= W*np.sin(theta_0)/(0.5*rho*V**2*S)
     return Cx0
-
 
 def longitudinal_derivatives(Aero, Perf, GeneralConst, Wing, VTail, Stab, lcg, theta_0, Cmafuse=None, Cmqfuse=None, CLa=None, CLah=None, depsda=None,
                              CDa=None, Vh=None, Vfuse=None, cla=None, A=None, clah=None,
@@ -964,7 +931,6 @@ def longitudinal_derivatives(Aero, Perf, GeneralConst, Wing, VTail, Stab, lcg, t
 
     Stab.dump()
 
-
 def lateral_derivatives(Perf, GeneralConst, Wing, VTail, Stab, Cnb, CLav=None, Vv=None, CLa=None, clav=None,
                         Av=None, cla=None, A=None, Cn_beta_dot=None,CY_beta_dot=None): #Cnbfuse=None, Vfuse=None
     Perf.load()
@@ -1041,8 +1007,6 @@ def lateral_derivatives(Perf, GeneralConst, Wing, VTail, Stab, Cnb, CLav=None, V
     Stab.mub = mub(m, rho, S, b)
     Stab.Cnb = Cnb
     Stab.dump()
-
-
 
 def eigval_finder_sym(Stab, Iyy, m, c,V0=45,CXq=0,CXde=0,CZde=0, Cmde=-2.617):      #Iyy = 12081.83972
     """
@@ -1174,9 +1138,6 @@ def eigval_finder_sym(Stab, Iyy, m, c,V0=45,CXq=0,CXde=0,CZde=0, Cmde=-2.617):  
     # plt.legend()    
     # plt.show()
     
-
-
-
 def eigval_finder_asymm(Stab, Ixx, Izz, Ixz, m, b, CL, V0=45, CYbdot=0, Cnbdot=0,CYda=0, Cldr=0, Cnda=0,Cndr=-0.10335434353099078,CYdr=0.18090,Clda=-0.0977677051397158):   #Ixx = 10437.12494 Izz = 21722.48912
 
     """
@@ -1317,8 +1278,6 @@ def eigval_finder_asymm(Stab, Ixx, Izz, Ixz, m, b, CL, V0=45, CYbdot=0, Cnbdot=0
     # plt.legend()
     # plt.show()
 
- 
-
 def span_vtail(r, w, g):
     """ Computes the span of the vtail based of the propellor radius, width of the fuselage and dihedral of the vtail
 
@@ -1357,7 +1316,6 @@ def span_vtail(r, w, g):
     else:
         s = r/np.sin(g)
     return s
-
 
 def acai(Bf, fcmin, fcmax, Tg):
     """ Computes the Available Control Authority Index, based on MATLAB original code
@@ -1450,7 +1408,6 @@ def create_rotor_loc(wingspan, prop_radius, Vtailspan, Vtail_dihedral, x_lewing,
                           [WIy, -WIy, WOy, -WOy, Ty, -Ty],
                           [-1,1,-1,1,1,-1]])
     return rotor_loc
-
 
 def cg_range_calc(convergence_dir, x_cg_try, x_cg_lim, rotor_loc , rotor_eta, rotor_ku, max_T_per_rotor, Tg):
     """ Finds by convergence the most limiting cg location (vertical flight mode) in a certain convergence direction
@@ -1595,6 +1552,3 @@ def pylon_calc(Wing, Veetail, Fuselage, Stability, AircraftParameters, rotor_loc
         if pylonsize > 4:
             loopforpylonsize = False
     return log
-
-
-

@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from basic_functions import Linear
+from AetheriaPackage.basic_functions import Linear
 
 rect_corner_basis = np.array([[1,  1,  0],
                               [1,  1, -1],

@@ -1,4 +1,5 @@
 import openmdao.api as om
+import datetime as dt
 import time
 import json
 import sys
@@ -10,26 +11,34 @@ sys.path.insert(0, os.path.abspath("."))
 from AetheriaPackage.integration import run_integration, multi_run
 import AetheriaPackage.alert as alert
 
+
+
 class VTOLOptimization(om.ExplicitComponent):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         #initialization
-        self.label = ("_".join(time.asctime().split(" ")[1:-1])).replace(":",".")[:-3]+'_tst_initcond'
+        start_time = dt.datetime.now()
+
+        # Read initial estimate
+        self.init_estimate_path = r"input/initial_estimate.json"
+        with open(self.init_estimate_path, 'r') as f:
+            init = json.load(f)
+        
+        beta = init['Fuselage']['beta_crash']
+        self.label = f'b={beta:0.3f}_{start_time:%b-%d_%H.%M}'
+
+        # initialising the save directory
         self.dir_path = os.path.join("output", "run_optimizaton_" + self.label)
         os.mkdir(self.dir_path)
+
         self.json_path = os.path.join(self.dir_path, "design_state_" + self.label + ".json")
-        self.outerloop_counter = 1
-        self.init_estimate_path = r"input/initial_estimate.json"
+        with open(self.json_path, 'w') as f:
+            json.dump(init, f, indent=6)
 
         # make a copy of initial estimate file
         shutil.copy(self.init_estimate_path, os.path.join(self.dir_path, f'copy_initial_estimate_{self.label}.json'))
 
-        # Read initial estimate
-        with open(self.init_estimate_path, 'r') as f:
-            init = json.load(f)
-
-        with open(self.json_path, 'w') as f:
-            json.dump(init, f, indent=6)
+        self.outerloop_counter = 1
 
     def setup(self):
     
@@ -83,13 +92,13 @@ class VTOLOptimization(om.ExplicitComponent):
 
 t0 = time.localtime()
 prob = om.Problem()
-prob.model.add_subsystem('Integrated_design',VTOLOptimization())
+prob.model.add_subsystem('Integrated_design', VTOLOptimization())
 # Initial values for the optimization TODO: Improve initial values
 prob.model.set_input_defaults('Integrated_design.AR', 8.4)
 
 # Define constraints TODO: Probably better to define them in a central file, like constants
 prob.model.add_constraint('Integrated_design.MTOM', upper=3175.)
-prob.model.add_constraint('Integrated_design.span', lower= 6, upper= 14.)
+prob.model.add_constraint('Integrated_design.span', lower= 6, upper= 14.) # according to the paper should be between 7.4 and 14
 prob.model.add_constraint('Integrated_design.length_fuselage', upper= 14.)
 #prob.model.add_constraint("Integrated_design.AR", upper= 8.5)
 
@@ -103,6 +112,8 @@ prob.model.add_design_var('Integrated_design.AR', lower = 5, upper = 15)
 
 prob.model.add_objective('Integrated_design.energy')
 
+
+
 prob.setup()
 
 try:
@@ -110,9 +121,10 @@ try:
 finally:
     t1 = time.localtime()
     #   print final time
-    print(f'\nStart time: {time.asctime(t0)}')
-    print(f'Stop time: {time.asctime(t1)}')
-    print(f'Execution time: {(time.mktime(t1)-time.mktime(t0))/60:.1f}')
-     
+    with open(os.path.join('output', 'performance.txt'), 'w') as f:
+        line = f'Start time: {time.asctime(t0)}\nStop time: {time.asctime(t1)}\nExecution time: {(time.mktime(t1)-time.mktime(t0))/60:.1f} min'
+        print(line)
+        f.write(line)
+            
     # alert user that program is finished
     alert.play_sound()

@@ -13,7 +13,7 @@ import AetheriaPackage.tail_plotter_tools as tpt
 from AetheriaPackage.GeneralConstants import *
 from AetheriaPackage.data_structs import *
 from AetheriaPackage.basic_functions import Linear
-# My Tail Optimizer
+
 
 def get_tank_radius(l_tank:float, V_tank:float, n:int, **kwargs)->float:
     '''
@@ -53,12 +53,12 @@ def get_tank_radius(l_tank:float, V_tank:float, n:int, **kwargs)->float:
 
         if derivative == 0:
             # Derivative is zero when r_tank = 0 or r_tank = l_tank
-            raise ValueError('Zero derivative in Newton Method!')
+            raise ValueError(f'Zero derivative in Newton Method! r_tank={r_tank:.3f} | l_tank={l_tank:.3f}')
         
         return derivative
     
     result = sp.optimize.root_scalar(tank_volume_function, fprime=derivative_tank_volume_function, 
-                                     method='newton', args=(l_tank, V_tank, n), x0=l_tank/4, **kwargs)
+                                     method='newton', args=(l_tank, V_tank, n), x0=l_tank/4, **kwargs) 
     if result.converged:
         return result.root
     else:
@@ -161,7 +161,7 @@ def optimize_tail_length(beta:float, V_tank:float, h0:float, b0:float,
 
         Recall that the design vector is structured as follows
         x = [l_tank, hk, bk, hc, bc]
-            0      1   2   3   4 
+               0      1   2   3   4 
         
         '''
 
@@ -188,7 +188,7 @@ def optimize_tail_length(beta:float, V_tank:float, h0:float, b0:float,
     p_second_linear_constraint  = partial(second_linear_constraint, h0=h0, b0=b0, hf=hf, bf=bf, var=linear_rel)
 
     # Defining Bounds
-    bnds = ((0, None), (0, h0), (0, b0), (0, None), (0, None))
+    bnds = ((0, None), (0.0001, h0), (0.0001, b0), (0.0001, None), (0.0001, None))
 
     # Defining Constraints: recall that 'inequality means that it is to be non-negative' 
     cons = (
@@ -200,7 +200,8 @@ def optimize_tail_length(beta:float, V_tank:float, h0:float, b0:float,
             {'type': 'eq'  , 'fun': p_second_linear_constraint},                 # second linear constraint
             )
     
-    x0 = [V_tank/(0.4*b0*0.4*h0), 0.8*h0, 0.8*b0, 0.4*h0, 0.4*b0]
+    k1, k2  = 0.8, 0.6
+    x0 = [V_tank, k1*h0, k1*b0, k2*h0, k2*b0]
     
     result = sp.optimize.minimize(p_get_tail_size, x0, method='SLSQP', bounds=bnds, constraints=cons, options={'maxiter':1000}, tol=0.001)
     
@@ -216,7 +217,7 @@ def optimize_tail_length(beta:float, V_tank:float, h0:float, b0:float,
             except IndexError:
                 pass
 
-        return l_tail, l_tank, hk, bk, hc, bc, upsweep, r_tank
+        return l_tail, l_tank, hk, bk, hc, bc, hf, bf, upsweep, r_tank
     
     else:
         raise RuntimeError(f'Tail optimization failed: {result.message}')
@@ -338,7 +339,7 @@ def get_fuselage_sizing(h2tank, fuelcell, perf_par,fuselage, validate=False, plo
     if validate:
         print(f"|{fuselage.volume_powersys=:^20.4e}|")
     # TODO update this code!!!
-    l_tail, l_tank, hk, bk, hc, bc, upsweep, r_tank = optimize_tail_length(beta=fuselage.beta_crash,
+    l_tail, l_tank, hk, bk, hc, bc, hf, bf, upsweep, r_tank = optimize_tail_length(beta=fuselage.beta_crash,
                                                                            V_tank=fuselage.volume_powersys,
                                                                            h0=fuselage.height_fuselage_inner,
                                                                            b0=fuselage.width_fuselage_inner,
