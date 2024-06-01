@@ -21,11 +21,13 @@ import AetheriaPackage.alert as alert
 beta = 0.520
 
 fpath_opt_var = r'scripts\beta_sensitivity\beta_sensitivity_optimization_variables.csv'
+default_estimate = r'scripts\beta_sensitivity\design_state_b=0.50_May-20_23.17.json'
+# default_estimate = r"input\\default_initial_estimate.json"
 work_dir = os.path.join('output', '_beta_sensitivity_3')
 
 # determining initial estimate file
 # -----------------------------------------------------------------------------------------
-init_estimate_beta = 0 # '-1' for closest beta, '0' for default estimate, 'x' for beta=x (if it exists)
+init_estimate_beta = -1 # '-1' for closest beta, '0' for default estimate, 'x' for beta=x (if it exists)
 
 all_optim_folder  = [os.path.join(work_dir, f) for f in os.listdir(work_dir) if os.path.isdir(os.path.join(work_dir, f))]
 
@@ -38,7 +40,7 @@ for optim_folder in all_optim_folder:
 beta_optim_folder = np.array(beta_optim_folder)
 
 if init_estimate_beta == 0:
-    og_initial_estimate_file = r"input\\default_initial_estimate.json"
+    og_initial_estimate_file = default_estimate
     print('Set initial conditions to the default (see input\\default_initial_estimate.json)')
 else:
     if len(all_optim_folder) == 0:
