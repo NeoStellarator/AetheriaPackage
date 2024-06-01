@@ -542,7 +542,6 @@ def power_system_convergences(powersystem: Power, Mission: AircraftParameters):
     powersystem.fuelcell_volume = Pstack.volume
     powersystem.h2_tank_mass = Tankmass[index_min_mass]
     powersystem.nu_FC_cruise_fraction = NU
-    Mission.powersystem_mass = powersystemmass
     powersystem.powersystem_mass = powersystemmass
 
 

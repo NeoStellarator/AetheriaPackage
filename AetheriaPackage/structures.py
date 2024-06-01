@@ -329,18 +329,16 @@ def crash_box_height_convergerence(plateau_stress, yield_stress, e_0, e_d, v0, s
 
 
 
-def get_fuselage_sizing(h2tank, fuelcell, perf_par,fuselage, validate=False, plot_tail=False):
+def get_fuselage_sizing(h2tank, fuelcell, perf_par, fuselage, power, plot_tail=False):
 
     crash_box_height, crash_box_area = crash_box_height_convergerence(const.s_p, const.s_y, const.e_0, const.e_d, const.v0, const.s0, perf_par.MTOM)
     fuselage.height_fuselage_inner = fuselage.height_cabin + crash_box_height
     fuselage.height_fuselage_outer = fuselage.height_fuselage_inner + const.fuselage_margin
 
-    fuselage.volume_powersys = h2tank.volume(perf_par.mission_energy)
-    if validate:
-        print(f"|{fuselage.volume_powersys=:^20.4e}|")
-    # TODO update this code!!!
+    power.h2_tank_volume = h2tank.volume(perf_par.mission_energy)
+
     l_tail, l_tank, hk, bk, hc, bc, hf, bf, upsweep, r_tank = optimize_tail_length(beta=fuselage.beta_crash,
-                                                                           V_tank=fuselage.volume_powersys,
+                                                                           V_tank=power.h2_tank_volume,
                                                                            h0=fuselage.height_fuselage_inner,
                                                                            b0=fuselage.width_fuselage_inner,
                                                                            hf=const.hf,
@@ -350,15 +348,14 @@ def get_fuselage_sizing(h2tank, fuelcell, perf_par,fuselage, validate=False, plo
                                                                            plot=plot_tail)
 
     fuselage.length_tail = l_tail
-    fuselage.length_tank = l_tank
-    fuselage.tank_radius = r_tank
+    power.h2_tank_length = l_tank
+    power.h2_tank_radius    = r_tank
     fuselage.upsweep = upsweep 
     fuselage.bc = bc
     fuselage.crash_box_area =  crash_box_area
     fuselage.hc = hc
     fuselage.bf = bf
     fuselage.hf = hf
-    fuselage.limit_fuselage = fuselage.length_cockpit + fuselage.length_cabin + l_tail + fuelcell.depth + const.fuselage_margin 
     fuselage.length_fuselage = fuselage.length_cockpit + fuselage.length_cabin + l_tail + fuelcell.depth + const.fuselage_margin 
 
     return fuselage
@@ -753,7 +750,7 @@ class Miscallenous(Component):
 
 
         
-def get_weight_vtol(perf_par: AircraftParameters, fuselage: Fuselage, wing: Wing,  engine: Engine, vtail: VeeTail, test= False):
+def get_weight_vtol(perf_par:AircraftParameters, fuselage:Fuselage, wing:Wing, engine:Engine, vtail:VeeTail, power:Power, test=False):
     """ This function is used for the final design, it reuses some of the codes created during
     the midterm. It computes the final weight of the vtol using the data structures created in the
     final design phase
@@ -798,7 +795,7 @@ def get_weight_vtol(perf_par: AircraftParameters, fuselage: Fuselage, wing: Wing
     # Misc mass
     perf_par.misc_mass = Miscallenous(perf_par.MTOM, perf_par.OEM, const.npax + 1).mass
 
-    perf_par.OEM = np.sum([ perf_par.powersystem_mass ,   wing.wing_weight, vtail.vtail_weight, fuselage.fuselage_weight, nacelle_mass, total_engine_mass, perf_par.lg_mass, perf_par.misc_mass])
+    perf_par.OEM = np.sum([ power.powersystem_mass ,   wing.wing_weight, vtail.vtail_weight, fuselage.fuselage_weight, nacelle_mass, total_engine_mass, perf_par.lg_mass, perf_par.misc_mass])
     perf_par.MTOM =  perf_par.OEM + const.m_pl
 
     # Update weight not part of a data structure

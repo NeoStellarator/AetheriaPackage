@@ -57,10 +57,8 @@ class Aero(BaseModel):
 class AircraftParameters(BaseModel):
     label: str = "Aircraft"
     MTOM: float
+    OEM: float | None = None
     Stots: float # Total area of wing reference area
-    prop_eff: float  # Propulsive efficiency
-    glide_slope: float 
-
 
     #energy 
     mission_energy: float | None = None
@@ -72,24 +70,25 @@ class AircraftParameters(BaseModel):
     hor_loiter_energy: float | None = None
 
     #power
+    prop_eff: float  # Propulsive efficiency
     cruisePower : float | None = None
     hoverPower : float | None = None
     max_thrust: float | None = None
-    TW_max: float | None = None
+    max_thrust_per_engine: float | None = None
     
     #performance
+    glide_slope: float 
     v_stall: float = const.v_stall
-    v_approach: float | None = None
-    OEM: float | None = None
-    wing_loading_cruise: float | None = None
-    turn_loadfactor: float | None = None # Turning load factor
-    v_max: float | None = None
-    max_thrust_per_engine: float | None = None
     v_climb: float | None = None
+    v_approach: float | None = None
+    v_max: float | None = None
+    wing_loading_cruise: float | None = None
+    TW_max: float | None = None
 
     # Load factors
     n_max: float | None = None
     n_ult : float | None = None
+    turn_loadfactor: float | None = None # Turning load factor
 
     #CG and weight
     oem_cg : float | None = None
@@ -98,8 +97,6 @@ class AircraftParameters(BaseModel):
     cg_front_bar : float | None = None
     cg_rear_bar : float | None = None
     wing_loc: float | None = None
-    oem_mass : float | None = None
-    powersystem_mass: float | None = None
     misc_mass: float | None = None
     lg_mass: float | None = None
 
@@ -270,25 +267,22 @@ class FuelCell:
 
 class Fuselage(BaseModel):
     label : str = "Fuselage"
+    fuselage_weight: float | None = None
     length_fuselage: float
     beta_crash: float
     length_tail: float 
     diameter_fuselage: float 
     upsweep: float 
-    length_tank: float 
-    volume_fuselage: float 
     length_cabin: float = 2.7 # Length of the cabin
     height_cabin: float = 1.6 # Length of the cabin
     height_fuselage_outer: float  = 1.6 + const.fuselage_margin
     height_fuselage_inner: float  = 1.88
     width_fuselage_inner: float = 1.88 + const.fuselage_margin 
     width_fuselage_outer: float | None = None
+    volume_fuselage: float 
     length_cockpit: float = 2.103
-    tank_radius: float | None = None
-    limit_fuselage: float | None = None # Length of the fuseglage
-    volume_powersys: float | None = None
     crash_box_area: float | None = None
-    fuselage_weight: float | None = None
+    
 
     # Crash diameter related
     bc: float | None = None # width crash area
@@ -366,19 +360,21 @@ class HydrogenTank(BaseModel):
 
 class Power(BaseModel):
     label : str = "Power"
+    powersystem_mass: float | None = None
     battery_pos: float 
     battery_mass: float | None = None
-    fuelcell_mass: float | None = None
-    cooling_mass: float | None = None
-    h2_tank_mass: float | None = None
-    nu_FC_cruise_fraction: float | None = None
     battery_power : float | None = None
     battery_energy : float | None = None
     battery_volume: float | None = None
     fuelcell_volume : float | None = None
+    fuelcell_mass: float | None = None
+    h2_tank_mass: float | None = None
     h2_tank_volume : float | None = None
-    powersystem_mass: float | None = None
-
+    h2_tank_radius: float | None = None
+    h2_tank_length: float 
+    cooling_mass: float | None = None
+    nu_FC_cruise_fraction: float | None = None  
+    
     @classmethod
     def load(cls, file_path:FilePath):
         with open(file_path) as jsonFile:
@@ -507,28 +503,27 @@ class Stab(BaseModel):
 
 class VeeTail(BaseModel):
     label : str = "Vtail"
+    vtail_weight: float | None  = None
     surface: float 
-    quarterchord_sweep: float 
-    length_wing2vtail: float | None  = None
-    shs: float | None  = None
     virtual_hor_surface: float | None  = None
     virtual_ver_surface: float | None  = None
-    rudder_max: float | None  = None
-    elevator_min: float | None  = None
-    dihedral: float | None  = None
-    taper: float | None  = 1
-    c_control_surface_to_c_vee_ratio: float | None  = None
-    cL_cruise: float | None  = None
-    max_clh: float | None  = None
-    ruddervator_efficiency: float | None  = None
-    span: float | None  = None
-    vtail_weight: float | None  = None
-    thickness_to_chord: float | None  = 0.12
     aspect_ratio: float | None = None
+    span: float | None  = None
     chord_root: float | None = None
     chord_tip: float | None = None
     chord_mac: float | None = None
-
+    thickness_to_chord: float | None  = 0.12
+    quarterchord_sweep: float 
+    taper: float | None  = 1
+    dihedral: float | None  = None
+    ruddervator_efficiency: float | None  = None
+    shs: float | None  = None
+    elevator_min: float | None  = None
+    rudder_max: float | None  = None
+    max_clh: float | None  = None
+    c_control_surface_to_c_vee_ratio: float | None  = None
+    cL_cruise: float | None  = None
+    length_wing2vtail: float | None  = None # position of LEMAC of veetail relative to LEMAC of main wing
     @classmethod
     def load(cls, file_path:FilePath):
         with open(file_path) as jsonFile:
@@ -548,23 +543,23 @@ class VeeTail(BaseModel):
             json.dump(data, jsonFile, indent=4)
 
 class Wing(BaseModel):
-    aspect_ratio: float 
-    quarterchord_sweep: float 
-    taper: float 
-    washout: float 
-    """"IN RADIANS PLEASE"""
+    """"ANGLES IN RADIANS PLEASE"""
     label : str = "Wing"
+    wing_weight: float| None = None
     surface: float | None = None
+    aspect_ratio: float 
     span: float | None = None
     chord_root: float | None = None
     chord_tip: float | None = None
     chord_mac: float | None = None
-    y_mac: float| None = None
-    sweep_LE: float| None = None
-    x_lemac: float | None= None
-    x_lewing: float| None = None
     thickness_to_chord: float = 0.12
-    wing_weight: float| None = None
+    quarterchord_sweep: float 
+    sweep_LE: float| None = None
+    taper: float 
+    x_lemac: float | None= None
+    x_lewing: float| None = None # position of LEMAC of main wing relative to nose of ac
+    y_mac: float| None = None
+    washout: float 
 
     @classmethod
     def load(cls, file_path:FilePath):

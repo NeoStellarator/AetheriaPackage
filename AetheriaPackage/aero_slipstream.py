@@ -67,8 +67,7 @@ def prop_lift_thrust(T, rho, V_0, S_W, angle_of_attack):
 
 
 def slipstream_cruise(WingClass,EngineClass, AeroClass, mission):
-        # with open(r"input/data_structures/aetheria_constants.json") as jsonFile:
-        #         data = json.load(jsonFile)
+
         atm = ISA(const.h_cruise)
         t_cr = atm.temperature()
         rho_cr = atm.density()

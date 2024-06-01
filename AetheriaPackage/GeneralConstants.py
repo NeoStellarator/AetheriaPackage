@@ -123,12 +123,12 @@ t_loiter = 20*60
 t_landing = 15
 max_rotation = 5
 
-#fuelcell input
+#fuelcell input  ## DEPRECATED
 VolumeDensityFuellCell = 3.25 #kW /l
 PowerDensityFuellCell = 3.0 #kW/kg
 effiencyFuellCell = 0.55
 
-#Tank input
+#Tank input  ## DEPRECATED
 VolumeDensityTank = 0.5 #kg/l
 EnergyDensityTank = 1.85 # kWh/kg
 
@@ -162,3 +162,11 @@ nu_alu = 0.33
 E_composite = 100e9
 sigma_compostie = 2000e6
 rho_composite = 2000
+
+''' 
+Default Constraints for optimization
+MTOM                          upper= 3175.
+span              lower= 7.4, upper=   14.
+length_fuselage               upper=   14.
+AR                lower= 5.0, upper=   15)
+'''

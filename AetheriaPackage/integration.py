@@ -11,19 +11,17 @@ from AetheriaPackage.propulsion import propcalc
 from AetheriaPackage.structures import get_gust_manoeuvr_loadings, get_weight_vtol, get_fuselage_sizing
 from AetheriaPackage.power import power_system_convergences
 
-def run_integration(file_path, counter_tuple=(1,1), json_path= None, dir_path = None ):
+def run_integration(file_path, counter_tuple=(1,1), json_path=None, dir_path=None):
     """ Runs an entire integraton loop
 
-    :param label: Label required for writing to files
-    :type label: str
     :param file_path: Path to the initial estmate
     :type file_path: str
-    :param counter_tuple: tuple with two integers, defaults to (0,0)
+    :param counter_tuple: tuple with two integers, defaults to (1,1)
     :type counter_tuple: tuple, optional
-    :param counter_tuple: tuple with two integers, defaults to (0,0)
-    :type counter_tuple: tuple, optional
-    :param optimizer_pointer: Refers to the self method of the parent optimization class component
-    :type optimizer_pointer:  VTOLOptimization (see aetheria_optimization)
+    :param json_path: Path to json (storing) file, defaults to None
+    :type json_path: str, optional
+    :param dir_path: Path to working directory, defaults to None
+    :type dir_path: str, optional
     """    
     #----------------------------- Initialize classes --------------------------------
     if counter_tuple == (1,1):
@@ -103,10 +101,10 @@ def run_integration(file_path, counter_tuple=(1,1), json_path= None, dir_path = 
     #------------- Structures------------------
     # Fuselage sizing
     vtail_planform(vtail)
-    get_fuselage_sizing(Tank,Pstack, mission, fuselage)
+    get_fuselage_sizing(Tank, Pstack, mission, fuselage, power)
 
     #------------- weight_estimation------------------
-    get_weight_vtol(mission, fuselage, wing, engine, vtail)
+    get_weight_vtol(mission, fuselage, wing, engine, vtail, power)
 
     #---------------------- dumping update parameters to json file ------------------
     if dir_path is not None:
@@ -136,7 +134,7 @@ def run_integration(file_path, counter_tuple=(1,1), json_path= None, dir_path = 
         return mission, wing, engine, aero, fuselage, stability, power
 
 
-def multi_run(file_path, outer_loop_counter, json_path, dir_path ):
+def multi_run(file_path, outer_loop_counter, json_path, dir_path, max_inner_loops=10):
         print(f"===============================\nOuter loop iteration = {outer_loop_counter}\n===============================")
 
         with open(json_path, 'r') as f:
@@ -144,7 +142,7 @@ def multi_run(file_path, outer_loop_counter, json_path, dir_path ):
             MTOM_one = data["AircraftParameters"]["MTOM"]
 
         print(f"MTOM: {MTOM_one}")
-        for i in range(1,11):
+        for i in range(1, max_inner_loops+1):
             print(f'\nInner loop Iteration = {i}') 
             run_integration(file_path  ,(outer_loop_counter, i),json_path, dir_path) # run integration files which can be looped
 
@@ -158,7 +156,7 @@ def multi_run(file_path, outer_loop_counter, json_path, dir_path ):
 
             #break out of the convergences loop if the mtom convergences below 0.5%
             epsilon = abs(MTOM_two - MTOM_one) / MTOM_one
-            if epsilon < 0.005: #NOTE 
+            if epsilon < 0.005:
                 print(f" Inner loop has converged -> epsilon is: {epsilon * 100}%")
                 break
             MTOM_one = MTOM_two
