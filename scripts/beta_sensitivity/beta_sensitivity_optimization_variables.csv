@@ -3,4 +3,4 @@ design,AR,Wing/aspect_ratio,True,-,5,15
 constraint,MTOM,AircraftParameters/MTOM,False,Kg,None,3175 
 constraint,span,Wing/span,False,m,7.4,14   
 constraint,length_fuselage,Fuselage/length_fuselage,False,m,None,14   
-objective,energy,AircraftParameters/mission_energy,True,Wh,
+objective,energy,AircraftParameters/mission_energy,True,Wh,,

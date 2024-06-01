@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.abspath("."))
 from AetheriaPackage.integration import run_integration, multi_run
 import AetheriaPackage.alert as alert
 
+#TODO add scalers.
 class VTOLOptimization(om.ExplicitComponent):
     def __init__(self, 
                  design_variables,
@@ -116,11 +117,10 @@ class VTOLOptimization(om.ExplicitComponent):
 
         # Output required
         for v in self._cons_var + self._obj_var:
-            self.add_output(v['alias'])   
-    
+            self.add_output(v['alias'])    
 
     def setup_partials(self):
-        # Partial derivatives are done using finite difference
+        # Partial derivatives are done using finite differences
         self.declare_partials('*', '*', method='fd')
 
     def compute(self, inputs, outputs):
@@ -157,8 +157,6 @@ class VTOLOptimization(om.ExplicitComponent):
         for v in self._cons_var + self._obj_var:
             if v['show']: print(f'{v['json_route'][0]} > {v['json_route'][1]} = {outputs[v['alias']][0]:.2f} [{v['unit']}]')
 
-
-
 def read_optimization_variables(fpath=r'input\default_optimization_variables.csv'):
     '''
     Function to fetch the design variables, constraints and objective functions, and
@@ -185,7 +183,7 @@ def read_optimization_variables(fpath=r'input\default_optimization_variables.csv
     :type return: List[dict], List[dict], List[dict]
     '''
 
-    variables = pd.read_csv(fpath).T.to_dict()
+    variables = pd.read_csv(fpath).T.replace({np.nan: None}).to_dict()
 
     design_variables     = []
     constraint_variables = []
@@ -202,7 +200,6 @@ def read_optimization_variables(fpath=r'input\default_optimization_variables.csv
         del var['var_type']
     
     return design_variables, constraint_variables, objective_variables
-
 
 def optimize_aetheria(init_estimate_path=r"input/default_initial_estimate.json", 
                       optimization_variables_path=r'input/default_optimization_variables.csv',
@@ -222,8 +219,9 @@ def optimize_aetheria(init_estimate_path=r"input/default_initial_estimate.json",
 
     # recover initial data, to set up design variable
     with open(init_estimate_path, 'r') as f:
-        init_data = json.load(f)
-    
+        init_data = json.load(f)  
+
+
     # defining problem object
     des = 'Integrated_design'
     prob = om.Problem()
@@ -235,19 +233,18 @@ def optimize_aetheria(init_estimate_path=r"input/default_initial_estimate.json",
     
     # Define design variables, constraints and objectives in the problem object.
     for v in design_variables:
-        prob.model.add_design_var(des+'.'+v['alias'],lower=v['lower'], upper=v['upper'])
-        prob.model.set_input_defaults(des+'.'+v['alias'], 
-                                      init_data[v['json_route'][0]][v['json_route'][1]])
+        prob.model.add_design_var(des+'.'+v['alias'], lower=v['lower'], upper=v['upper'])
+        prob.model.set_input_defaults(des+'.'+v['alias'], init_data[v['json_route'][0]][v['json_route'][1]])
     for v in constraint_variables:
         prob.model.add_constraint(des+'.'+v['alias'], lower=v['lower'], upper=v['upper'])
     for v in objective_variables:
         prob.model.add_objective(des+'.'+v['alias'])
-
+    
     prob.driver = om.ScipyOptimizeDriver()
     prob.driver.options['optimizer'] = optimizer 
 
-    prob.setup()
-    
+    prob.setup(check=True)
+
     try:
         prob.run_driver()
     finally:
@@ -265,4 +262,4 @@ def optimize_aetheria(init_estimate_path=r"input/default_initial_estimate.json",
 
 
 if __name__ == '__main__':
-    optimize_aetheria()
+    optimize_aetheria(max_inner_loops=10)

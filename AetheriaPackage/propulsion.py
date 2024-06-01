@@ -90,7 +90,9 @@ def propcalc(aero, mission: AircraftParameters, engine: Engine, h_cruise: float,
     mission.prop_eff = prop_eff_cruise
     engine.t_factor = T_factor
     engine.thrust_coefficient = C_T_cruise
-
+    engine.prop_radius = prop.r_prop
+    engine.prop_area   = diskarea
+    
     return mission, engine
 
 

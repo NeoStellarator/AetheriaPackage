@@ -199,7 +199,6 @@ class Engine(BaseModel):
     #nacelle_width: float = None
     thrust_coefficient: float | None  = None
     t_factor: float | None  = None
-    thrust_per_engine: float | None  = None
     hub_radius: float | None  = None
     prop_radius: float | None  = None
     prop_area: float | None  = None

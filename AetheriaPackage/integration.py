@@ -50,16 +50,14 @@ def run_integration(file_path, counter_tuple=(1,1), json_path=None, dir_path=Non
         power = Power.load(json_path)
     #----------------------------------------------------------------------------------
 
-    # Preliminary Sizing
+    #-------------------- Preliminary Sizing ------------------------------------------
     get_wing_power_loading(mission, wing, engine, aero)
     get_gust_manoeuvr_loadings(mission, aero)
     
-    #planform sizing
+    #-------------------- Planform Sizing ---------------------------------------------
     wing_planform(wing, mission.MTOM, mission.wing_loading_cruise)
 
-
-
-    #-------------------- Aerodynamic sizing--------------------
+    #-------------------- Aerodynamic Sizing ------------------------------------------
     alpha_arr,cL_lst, induced_drag_lst =  get_aero_planform(aero, wing, 20)
     component_drag_estimation(wing, fuselage, vtail, aero) #
     
@@ -75,38 +73,36 @@ def run_integration(file_path, counter_tuple=(1,1), json_path=None, dir_path=Non
     aero.cL_endurance = cL_lst[np.argmax(CL_CD_endurance_opt)]
     aero.downwash_angle_stall =  np.average(weissinger_l(wing, aero.alpha_approach, 20)[3])
 
-    #-------------------- propulsion ----------------------------
+    #-------------------- Propulsion --------------------------------------------------
     propcalc(aero, mission=mission, engine=engine, h_cruise= const.h_cruise)
-    #-------------------- Flight Performance --------------------
+    
+    #-------------------- Flight Performance ------------------------------------------
     get_performance_updated(aero, mission, wing,engine, power)
 
-    #-------------------- power system sizing--------------------
-    power_system_convergences(power, mission) #
+    #-------------------- Power System Sizing -----------------------------------------
+    power_system_convergences(power, mission) 
 
+    #-------------------- Stability and Control ---------------------------------------
+    size_vtail_opt( WingClass=wing,
+                    AircraftClass=mission,
+                    PowerClass=power,
+                    EngineClass=engine,
+                    Aeroclass=aero,
+                    FuseClass=fuselage,
+                    VTailClass=vtail, 
+                    StabClass=stability,
+                    CLh_initguess=-0.1,
+                    stepsize = 5e-2,
+                ) 
 
-    #-------------------- stability and control--------------------
-    min_span = span_vtail(1,fuselage.diameter_fuselage,30*np.pi/180)
-    size_vtail_opt(WingClass=  wing,
-                                                                    AircraftClass= mission,
-                                                                    PowerClass= power,
-                                                                    EngineClass= engine,
-                                                                    Aeroclass= aero,
-                                                                    FuseClass= fuselage,
-                                                                    VTailClass= vtail, 
-                                                                    StabClass=stability,
-                                                                    b_ref= min_span, #!!!!!!!!! please update value when we get it
-                                                                    CLh_initguess=-0.1,
-                                                                    stepsize = 5e-2,
-                                                                    ) 
-    #------------- Structures------------------
-    # Fuselage sizing
+    #-------------------- Structures --------------------------------------------------
     vtail_planform(vtail)
     get_fuselage_sizing(Tank, Pstack, mission, fuselage, power)
 
-    #------------- weight_estimation------------------
+    #-------------------- Weight Estimation -------------------------------------------
     get_weight_vtol(mission, fuselage, wing, engine, vtail, power)
 
-    #---------------------- dumping update parameters to json file ------------------
+    #-------------------- dumping update parameters to json file ----------------------
     if dir_path is not None:
         mission.dump(json_path)
         wing.dump(json_path)
@@ -118,7 +114,7 @@ def run_integration(file_path, counter_tuple=(1,1), json_path=None, dir_path=Non
         stability.dump(json_path)
         power.dump(json_path)
 
-    #--------------------------------- Log all variables from current iterations ----------------------------------
+    #-------------------- Log all variables from current iterations -------------------
 
     if dir_path is not None:
         for data_struct in [mission, wing, engine, aero, fuselage, vtail, stability, power]:
@@ -135,13 +131,13 @@ def run_integration(file_path, counter_tuple=(1,1), json_path=None, dir_path=Non
 
 
 def multi_run(file_path, outer_loop_counter, json_path, dir_path, max_inner_loops=10):
-        print(f"===============================\nOuter loop iteration = {outer_loop_counter}\n===============================")
+        print(f"{'='*30}\nOuter loop iteration = {outer_loop_counter}\n{'='*30}")
 
         with open(json_path, 'r') as f:
             data = json.load(f)
             MTOM_one = data["AircraftParameters"]["MTOM"]
 
-        print(f"MTOM: {MTOM_one}")
+        print(f"MTOM: {MTOM_one} [Kg]")
         for i in range(1, max_inner_loops+1):
             print(f'\nInner loop Iteration = {i}') 
             run_integration(file_path  ,(outer_loop_counter, i),json_path, dir_path) # run integration files which can be looped
@@ -152,7 +148,7 @@ def multi_run(file_path, outer_loop_counter, json_path, dir_path, max_inner_loop
             MTOM_two = data["AircraftParameters"]["MTOM"]
 
             #log data so that convergences can be monitored live
-            print(f"MTOM: {MTOM_two} kg")
+            print(f"MTOM: {MTOM_two} [Kg]")
 
             #break out of the convergences loop if the mtom convergences below 0.5%
             epsilon = abs(MTOM_two - MTOM_one) / MTOM_one

@@ -18,7 +18,7 @@ import AetheriaPackage.alert as alert
 #------------------------------------------------------------------------------------------
 
 # set the target beta
-beta = 0.500
+beta = 0.520
 
 fpath_opt_var = r'scripts\beta_sensitivity\beta_sensitivity_optimization_variables.csv'
 work_dir = os.path.join('output', '_beta_sensitivity_3')
@@ -54,7 +54,7 @@ else:
     for file in os.listdir(all_optim_folder[init_file_idx]):
         if 'design' in file and 'state' in file: 
             og_initial_estimate_file = os.path.join(all_optim_folder[init_file_idx], file)
-    print(f'\nSet initial conditions of b={beta_optim_folder[init_file_idx]:.3f}\n')
+    print(f'\nSet initial conditions of b={beta_optim_folder[init_file_idx]:.3f}\n ({og_initial_estimate_file})')
 
 # copying the initial estimate file to the working directory (temporarily)
 fname = os.path.split(og_initial_estimate_file)[-1]

@@ -66,15 +66,13 @@ def prop_lift_thrust(T, rho, V_0, S_W, angle_of_attack):
 
 
 
-def slipstream_cruise(WingClass,EngineClass, AeroClass, mission):
+def slipstream_cruise(WingClass, EngineClass, AeroClass, mission):
 
         atm = ISA(const.h_cruise)
         t_cr = atm.temperature()
         rho_cr = atm.density()
         mhu = atm.viscosity_dyn()
-        # print(rho_cr)
-        EngineClass.total_disk_area = mission.MTOM / const.diskloading
-        diameter_propellers = 2*np.sqrt(EngineClass.total_disk_area/ np.pi )
+        diameter_propellers = 2*EngineClass.prop_radius
 
         # Angles
         i_cs_var = 0.0733 # calculated from lift at cruise

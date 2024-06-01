@@ -1,14 +1,14 @@
-import numpy as np
-from scipy.interpolate import RegularGridInterpolator,interp1d
-import numpy as np
-import scipy.linalg as lg
-import itertools
 from warnings import warn
-from AetheriaPackage.data_structs import *
-import AetheriaPackage.GeneralConstants as const
+import itertools
+
+import numpy as np
+from scipy import linalg, interpolate, optimize
 import matplotlib.pyplot as plt
 import control.matlab as ml
 import control as cl
+
+from AetheriaPackage.data_structs import *
+import AetheriaPackage.GeneralConstants as const
 
 def loading_diagram(wing_loc, lf, fuselage, wing, vtail, aircraft, power, engine):
     """_summary_
@@ -89,7 +89,7 @@ def loading_diagram(wing_loc, lf, fuselage, wing, vtail, aircraft, power, engine
 
     return res, res_margin
 
-def size_vtail_opt(WingClass, FuseClass, VTailClass, StabClass, Aeroclass, AircraftClass, PowerClass, EngineClass, b_ref, stepsize=1e-2,  CLh_initguess = -0.2, CLh_step = 0.02, plot = False):
+def size_vtail_opt(WingClass, FuseClass, VTailClass, StabClass, Aeroclass, AircraftClass, PowerClass, EngineClass, stepsize=1e-2, CLh_initguess = -0.2, CLh_step = 0.02, plot = False):
     """_summary_
 
     :param WingClass: _description_
@@ -108,8 +108,6 @@ def size_vtail_opt(WingClass, FuseClass, VTailClass, StabClass, Aeroclass, Aircr
     :type PowerClass: _type_
     :param EngineClass: _description_
     :type EngineClass: _type_
-    :param b_ref: _description_
-    :type b_ref: _type_
     :param stepsize: _description_, defaults to 1e-2
     :type stepsize: _type_, optional
     :param CLh_initguess: _description_, defaults to -0.6
@@ -132,7 +130,8 @@ def size_vtail_opt(WingClass, FuseClass, VTailClass, StabClass, Aeroclass, Aircr
         "wing_pos_lst": [],
         "shs_lst": [],
         "ctrl_surf_lst": [],
-        "cl_vee_cr_lst": []
+        "cl_vee_cr_lst": [],
+        "dihedral": []
     }
 
 
@@ -159,7 +158,7 @@ def size_vtail_opt(WingClass, FuseClass, VTailClass, StabClass, Aeroclass, Aircr
             dict_log["shs_lst"].append(shs)
             dict_log["ctrl_surf_lst"].append(control_surface_data)
             dict_log["cl_vee_cr_lst"].append(CLvee_cr_N)
-
+            dict_log["dihedral"].append(control_surface_data["dihedral"])
             #Move to next step
             CLh = CLh - CLh_step
 
@@ -192,8 +191,16 @@ def size_vtail_opt(WingClass, FuseClass, VTailClass, StabClass, Aeroclass, Aircr
 
         # Show the plots
         plt.show()
-        
-    filter = (dict_log["span_vee_lst"] > b_ref) * (dict_log["shs_lst"] < 1.02*np.min(dict_log["shs_lst"]))
+    
+
+    # cast all relevant lists to numpy arrays
+    for key in dict_log.keys():
+        if key == 'ctrl_surf_lst': continue
+        dict_log[key] = np.array(dict_log[key])
+    
+    b_min = min_span_vtail(EngineClass.prop_radius, dict_log['dihedral'])
+
+    filter = (dict_log["span_vee_lst"] > b_min) * (dict_log["shs_lst"] < 1.02*np.min(dict_log["shs_lst"]))
     design_idx = np.argmin(np.array(dict_log["trim_drag_lst"])[filter])
 
     CLh = dict_log["clh_lst"][design_idx]
@@ -460,8 +467,8 @@ def get_K(taper_h, AR_h):
     taper_points = np.array([0.25, 0.5, 1])
     aspect_ratio_points = np.array([3, 10])
     data = np.array([[0.61, 0.64, 0.68], [0.74, 0.77, 0.8]])
-    interp_func = RegularGridInterpolator((aspect_ratio_points, taper_points), data)
-
+    interp_func = interpolate.RegularGridInterpolator((aspect_ratio_points, taper_points), data)
+    
     if not aspect_ratio_points[0] < AR_h < aspect_ratio_points[-1]:
         if AR_h < aspect_ratio_points[0]:
             warn(f"Aspect ratio {AR_h} was out of range, defaulting to {aspect_ratio_points[0]=}", category=RuntimeWarning)
@@ -480,10 +487,10 @@ def get_c_control_surface_to_c_vee_ratio(tau):
     """
     ce_c_ratio=np.array([0,0.15,0.3])
     tau_arr=np.array([0,0.35,0.55])
-    interp_function=interp1d(tau_arr,ce_c_ratio)
+    interp_function =  interpolate.interp1d(tau_arr,ce_c_ratio)
     ce_c_ratio_of_tail=interp_function(tau)
     return float(ce_c_ratio_of_tail)
-
+    
 def get_tail_dihedral_and_area(Lambdah2,S_hor,Fuselage_volume,S,b,l_v,AR_h,taper_h,Cn_beta_req=0.0571,beta_h=1,eta_h=0.95):
     """" 
     Short desription of the gfunction
@@ -1264,8 +1271,8 @@ def eigval_finder_asymm(Stab, Ixx, Izz, Ixz, m, b, CL, V0=45, CYbdot=0, Cnbdot=0
     
 
     ####See if equivalent:   YES INDEED 
-    s=ml.tf([1,0],[1])
-    H_closed=ml.feedback(1/(0.05*s+1)*Hol*(-7/s+gain_yaw_damper),1)
+    s = ml.tf([1,0],[1])
+    H_closed = ml.feedback(1/(0.05*s+1)*Hol*(-7/s+gain_yaw_damper),1)
     print('This is what happened when we make a PI controller', ml.pole(H_closed))
     #####These poles show the eigenvalues, except the one at e-14 which is a floating point error.
     t, y = cl.forced_response(H_closed, t, np.zeros(10000),-0.01)
@@ -1278,6 +1285,19 @@ def eigval_finder_asymm(Stab, Ixx, Izz, Ixz, m, b, CL, V0=45, CYbdot=0, Cnbdot=0
     # plt.legend()
     # plt.show()
 
+def min_span_vtail(r, g, tol=0):
+    '''
+    Function to compute the minimum span for the vtail.
+
+    :param r: propellor radius
+    :type r: float
+    :param g: dihedral of vtail
+    :type g: float (or nd.array)
+    '''    
+    b_min = np.max([(r+tol)/np.sin(g), (r+tol)/np.cos(g)])
+
+    return b_min
+
 def span_vtail(r, w, g):
     """ Computes the span of the vtail based of the propellor radius, width of the fuselage and dihedral of the vtail
 
@@ -1289,7 +1309,8 @@ def span_vtail(r, w, g):
     :type g: float
     :return: span vtail
     :rtype: float
-    """    
+    """
+    raise DeprecationWarning('Replaced with min_span_vtail function')
     l = np.linspace(0, 2, 1000)
     formula = (w/2 - (l + r)*np.cos(g))**2 + ((l+r)*np.sin(g))**2 - r**2
     # Bisection method
@@ -1344,7 +1365,7 @@ def acai(Bf, fcmin, fcmax, Tg):
     B_1j = Bf[:,choose]
     z_jk = (fcmax-fcmin)/2
     z_jk = np.delete(z_jk, choose, 0)
-    kesai = lg.null_space(B_1j.T)
+    kesai = linalg.null_space(B_1j.T)
     kesai = kesai[:,0]
     B_2j = np.copy(Bf)
     B_2j = np.delete(B_2j, choose, 1)
@@ -1358,7 +1379,7 @@ def acai(Bf, fcmin, fcmax, Tg):
         B_1j = Bf[:,choose]
         z_jk = (fcmax - fcmin) / 2
         z_jk = np.delete(z_jk, choose, 0)
-        kesai = lg.null_space(B_1j.T)
+        kesai = linalg.null_space(B_1j.T)
         kesai = kesai[:, 0]
         B_2j = np.copy(Bf)
         B_2j = np.delete(B_2j, choose, 1)
