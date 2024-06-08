@@ -555,7 +555,7 @@ class Component():
 
 class WingWeight(Component):
     def __init__(self, mtom, S, n_ult, A):
-        """Retunrs the weight of the wing, Cessna method cantilever wings pg. 67 pt 5. Component weight estimation Roskam
+        """Returns the weight of the wing, Cessna method cantilever wings pg. 67 pt 5. Component weight estimation Roskam
 
         :param mtom: maximum take off mass
         :type mtom: float
