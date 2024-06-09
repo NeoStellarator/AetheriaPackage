@@ -1,11 +1,13 @@
+import os
 from warnings import warn
+
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.optimize as optimize
 from scipy.constants import g
+
 import AetheriaPackage.GeneralConstants as const
 from AetheriaPackage.ISA_tool import ISA
-import os
 
 def powerloading_climbrate(eff, ROC, WS,rho,CD0,e,A):
     k = 1/(e*A*np.pi)

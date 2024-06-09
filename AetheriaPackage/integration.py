@@ -1,8 +1,10 @@
 
-import numpy as np
 import os
 import json
+
+import numpy as np
 import pandas as pd
+
 from AetheriaPackage.data_structs import *
 from AetheriaPackage.sim_contr import size_vtail_opt, span_vtail
 from AetheriaPackage.aerodynamics import wing_planform, vtail_planform, component_drag_estimation, get_aero_planform, weissinger_l

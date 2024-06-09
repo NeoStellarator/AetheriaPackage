@@ -411,7 +411,6 @@ class PylonSizing():
 
         return res
 
-
 #Moments of Inertia
 def i_xx_solid(width,height):
     return width*height*height*height/12
@@ -522,212 +521,179 @@ def get_gust_manoeuvr_loadings(perf_par, aero):
 
     return perf_par
 
-class VtolWeightEstimation:
-    def __init__(self) -> None:
-        self.components = []
-
-    def add_component(self, CompObject):
-        """ Method for adding a component to the VTOL
-
-        :param CompObject: The component to be added to the VTOL
-        :type CompObject: Component parent class
-        """        
-        self.components.append(CompObject)  
-
-    def compute_mass(self):
-        """ Computes the mass of entire vtol
-
-        :return: Entire mass of VTOL
-        :rtype: float
-        """        
-        mass_lst = [i.return_mass() for i in self.components]
-        return np.sum(mass_lst)*const.oem_cont
-
-class Component():
-    """ This is the parent class for all weight components, it initalized the mass
-    attribute and a way of easily returning it. This is used in VtolWeightEstimation.
-    """    
-    def __init__(self) -> None:
-        self.mass = None
-
-    def return_mass(self): return self.mass
 
 
-class WingWeight(Component):
-    def __init__(self, mtom, S, n_ult, A):
-        """Returns the weight of the wing, Cessna method cantilever wings pg. 67 pt 5. 
-        Component weight estimation Roskam. Eq. 5.2
+def calc_wing_weight(mtom:float, S:float, n_ult:float, A:float) -> float:
+    """Returns the mass of the wing subsystem, using Cessna method for cantilever wings.
+    See Eq. 5.2 (pg 67) of Pt 5. Component Weight Estimation (Roskam).
 
-        :param mtom: maximum take off mass
-        :type mtom: float
-        :param S: Wing area
-        :type S: float
-        :param n_ult: Ultimate load factor
-        :type n_ult: float
-        :param A: Aspect ratio
-        :type A: float
-        """        
-        super().__init__()
-        self.id = "wing"
-        self.S_ft = S*10.7639104
-        self.n_ult = n_ult
-        self.A = A
-        self.mtow_lbs = 2.20462 * mtom
-        self.mass = 0.04674*(self.mtow_lbs**0.397)*(self.S_ft**0.36)*(self.n_ult**0.397)*(self.A**1.712)*0.453592
+    :param mtom: maximum take off mass (Kg)
+    :type mtom: float
+    :param S: Wing area (m2)
+    :type S: float
+    :param n_ult: Ultimate load factor (-)
+    :type n_ult: float
+    :param A: Aspect ratio (-)
+    :type A: float
+    """
+    # Convert to Imperial Units
+    S_ft = S*10.7639104
+    n_ult = n_ult
+    A = A
+    mtow_lbs = 2.20462 * mtom
 
-class FuselageWeight(Component):
-    def __init__(self, mtom, lf, nult, wf, hf, v_cr, rho_cr, rho_sl):
-        """ Returns fuselage weight, USAF method page 76 Pt V, Eq 5.25. component weight estimaation Roskam.
+    return 0.04674*(mtow_lbs**0.397)*(S_ft**0.36)*(n_ult**0.397)*(A**1.712)*0.453592
 
-        :param mtom: Maximum take off weight
-        :type mtom: float
-        :param lf: Fuselage length
-        :type lf: float
-        :param nult: Ultimate load factor
-        :type nult: float
-        :param wf: Maximum fuselage width (m)
-        :type wf: float
-        :param hf: Maximum fuselage height (m)
-        :type hf: float
-        :param v_cr: design cruise speed  (m/s)
-        :type v_cr: float
-        :param rho_cr: density at cruise altitude (Kg/m3)
-        :type rho_cr: float
-        :param rho_sl: density at sea-level altitude (Kg/m3)
-        :type rho_sl: float
+def calc_fuselage_weight(mtom:float, lf:float, nult:float, wf:float, 
+                         hf:float, v_cr:float, rho_cr:float, rho_sl:float) -> float:
+    """ Returns mass of fuselage subsystem, using USAF method. 
+    See Eq 5.25 (pg 76) Pt 5. Component Weight Estimation (Roskam).
 
-        # THE FOLLOWING IS FOR CESSNA METHOD, WHICH IS NOT USED
-        # :param max_per:  Maximium perimeter of the fuselage
-        # :type max_per: float
-        # :param npax: Amount of passengers including pilot
-        # :type npax: int
-        """        
-        super().__init__()
-        self.id = "fuselage"
-        self.mtow_lbs = 2.20462 * mtom
-        self.lf_ft = lf*3.28084
+    :param mtom: Maximum take off mass (Kg)
+    :type mtom: float
+    :param lf: Fuselage length (m)
+    :type lf: float
+    :param nult: Ultimate load factor (-)
+    :type nult: float
+    :param wf: Maximum fuselage width (m)
+    :type wf: float
+    :param hf: Maximum fuselage height (m)
+    :type hf: float
+    :param v_cr: design cruise speed  (m/s)
+    :type v_cr: float
+    :param rho_cr: density at cruise altitude (Kg/m3)
+    :type rho_cr: float
+    :param rho_sl: density at sea-level altitude (Kg/m3)
+    :type rho_sl: float
 
-        self.nult = nult # ultimate load factor
-        self.wf_ft = wf*3.28084 # width fuselage [ft]
-        self.hf_ft = hf*3.28084 # height fuselage [ft]
-        self.Vc_kts = v_cr*(rho_cr/rho_sl)**2*1.94384449 # design cruise speed [kts] (convert TAS -> EAS)
+    # THE FOLLOWING IS FOR CESSNA METHOD, WHICH IS NOT USED
+    # :param max_per:  Maximium perimeter of the fuselage
+    # :type max_per: float
+    # :param npax: Amount of passengers including pilot
+    # :type npax: int
+    """
 
-        self.fweigh_USAF = 200*((self.mtow_lbs*self.nult/10**5)**0.286*(self.lf_ft/10)**0.857*((self.wf_ft+self.hf_ft)/10)*(self.Vc_kts/100)**0.338)**1.1
-        self.mass = self.fweigh_USAF*0.453592  
+    # Convert to Imperial Units
+    mtow_lbs = 2.20462 * mtom
+    lf_ft = lf*3.28084
+    nult = nult # ultimate load factor
+    wf_ft = wf*3.28084 # width fuselage [ft]
+    hf_ft = hf*3.28084 # height fuselage [ft]
+    Vc_kts = v_cr*(rho_cr/rho_sl)**2*1.94384449 # design cruise speed [kts] (convert TAS -> EAS)
 
-        #if identifier == "J1":
-        #    # THIS IS CESSNA METHOD
-        #    self.fweight_high = 14.86*(self.mtow_lbs**0.144)*((self.lf_ft/self.max_per_ft)**0.778)*(self.lf_ft**0.383)*(self.npax**0.455)
-        #    self.mass = self.fweight_high*0.453592
-        #else:
-        #    self.fweight_high = 14.86*(self.mtow_lbs**0.144)*((self.lf_ft/self.max_per_ft)**0.778)*(self.lf_ft**0.383)*(self.npax**0.455)
-        #    self.fweight_low = 0.04682*(self.mtow_lbs**0.692)*(self.max_per_ft**0.374)*(self.lf_ft**0.590)
-        #    self.fweight = (self.fweight_high + self.fweight_low)/2
-        #    self.mass = self.fweight*0.453592
+    fweigh_USAF = 200*((mtow_lbs*nult/10**5)**0.286*(lf_ft/10)**0.857*((wf_ft+hf_ft)/10)*(Vc_kts/100)**0.338)**1.1
+    return fweigh_USAF*0.453592  
 
-class LandingGear(Component):
-    def __init__(self, mtom):
-        """Computes the mass of the landing gear, simplified Cessna method for retractable landing gears pg. 81 Pt V component weight estimation.
-        Adapted from Eq. 5.38.
+    #if identifier == "J1":
+    #    # THIS IS CESSNA METHOD
+    #    fweight_high = 14.86*(mtow_lbs**0.144)*((lf_ft/max_per_ft)**0.778)*(lf_ft**0.383)*(npax**0.455)
+    #    mass = fweight_high*0.453592
+    #else:
+    #    fweight_high = 14.86*(mtow_lbs**0.144)*((lf_ft/max_per_ft)**0.778)*(lf_ft**0.383)*(npax**0.455)
+    #    fweight_low = 0.04682*(mtow_lbs**0.692)*(max_per_ft**0.374)*(lf_ft**0.590)
+    #    fweight = (fweight_high + fweight_low)/2
+    #    mass = fweight*0.453592
 
-        :param mtom: maximum take off weight
-        :type mtom: float
-        """        
-        super().__init__()
-        self.id = "landing gear"
-        self.mtow_lbs = 2.20462 * mtom
-        self.mass = (0.04*self.mtow_lbs + 6.2)*0.453592
+def calc_landing_gear_weight(mtom:float) -> float:
+    """Returns the mass of the landing gear subsystem, using simplified Cessna method
+    for retractable landing gears. Adapted from Eq. 5.38 (pg 81) Pt 5. Component 
+    Weight Estimation (Roskam).
 
+    :param mtom: maximum take off mass (Kg)
+    :type mtom: float
+    """        
+    # Convert to imperial units
+    mtow_lbs = 2.20462 * mtom
 
-class Powertrain(Component):
-    def __init__(self):
-        """Returns the mass of the engines based on scimo engines and converters https://sci-mo.de/motors/"""        
-        super().__init__()
-        self.id = "Powertrain"
-        self.mass = 12 * (13 + 10) # 12 engines, each weigh 13 kg and require a 10 kg inverter.
-
-class Propeller(Component):
-    def __init__(self ):
-        """Returns the mass of the propeller"""
-        
-        super().__init__()
-        self.id = "Propeller"
-        self.mass = 6 * 20 # 6 propellers and 30 kg per proppeller (I just googled a bit)
-
-class HorizontalTailWeight(Component):
-    def __init__(self, w_to, S_h, A_h, t_r_h ):
-        """Computes the mass of the horizontal tail, only used for Joby. Cessna method pg. 71 pt V 
-        component weight estimation, Eq. 5.12.
-        
-
-        :param W_to: take off weight in  kg
-        :type W_to: float
-        :param S_h: Horizontal tail area in  m^2
-        :type S_h: float
-        :param A_h: Aspect ratio horizontal tail
-        :type A_h: float
-        :param t_r_h: Horizontal tail maximum root thickness in m 
-        :type t_r_h: float
-        """        
-
-        self.id = "Horizontal tail"
-        w_to_lbs = 2.20462262*w_to
-        S_h_ft = 10.7639104*S_h
-        t_r_h_ft = 3.2808399*t_r_h
-
-        super().__init__()
-        self.mass =  (3.184*w_to_lbs**0.887*S_h_ft**0.101*A_h**0.138)/(174.04*t_r_h_ft**0.223)*0.45359237
-
-class NacelleWeight(Component):
-    def __init__(self, p_to):
-        """ Returns nacelle weight, according to Cessna Mehod pg 78 pt V component weight estimation, Eq. 5.29.
-
-        :param w_to: Total take off weight aka MTOM
-        :type w_to: float
-        """        
-        super().__init__()
-        self.id = "Nacelles"
-        self.p_to_hp = 0.001341*p_to
-        self.mass = 0.24*self.p_to_hp*0.45359237
-        # Factor 0.24 is originally intended for horizontally opposed engines - since aircraft is electric, it could be decreased, as it would require less structural weight
+    return (0.04*mtow_lbs + 6.2)*0.453592
 
 
+def calc_powertrain_weight(n_engines:int)->float:
+    """Returns the mass of the powertrain, including:
+    - engine (scimo https://sci-mo.de/motors/)   13 Kg
+    - inverter (scimo https://sci-mo.de/motors/) 10 Kg
+    - propeller (online source TODO add source)  20 Kg
+    
+    
+    :param n_engines: number of engines
+    :type n_engines: int
+    """
 
-class Miscallenous(Component):
-    def __init__(self, mtom, oew, npax) -> None:
-        """ Returns the miscallenous weight which consists out of flight control, electrical system
-        , avionics, aircondition and furnishing. All in line comments refer to pages in
-        Pt. 5 Component weight estimation by Roskam
+    return (2*n_engines)*(13 + 10) + n_engines*20 
 
-        :param mtom: Maximum take-off weight (Kg)
-        :type mtom: float
-        :param oew: Operating empty weight (Kg)
-        :type oew: float
-        :param npax: Number of passengers (including pilots)
-        :type npax: int
-        """        
-        super().__init__()
-        self.id = "misc"
-        w_to_lbs = 2.20462262*mtom
-        w_oew_lbs = 2.20462262*oew
+def calc_htail_weight(mtom:float, S_h:float, A_h:float, t_r_h:float) -> float:
+    """Returns mass of the horizontal tail subsystem, based on Cessna method.
+    See Eq. 5.12 (pg 71) Pt 5. Component Weight Estimation (Roskam).
+    (Midterm note: only used for Joby)
 
-        mass_fc = 0.0168*w_to_lbs # flight control system weight Cessna method pg. 98 Eq 7.2
-        mass_elec = 0.0268*w_to_lbs # Electrical system mass  cessna method pg. 101 Eq 7.13
-        mass_avionics = 40 + 0.008*w_to_lbs # Avionics system mass Torenbeek pg. 103 Eq 7.23
-        mass_airco = 0.018*w_oew_lbs   # Airconditioning mass Torenbeek method pg. 104 Eq 7.29
-        mass_fur = 0.412*npax**1.145*w_to_lbs**0.489 # Furnishing mass Cessna method pg.107 Eq 7.41
+    :param mtom: maximum take off mass (Kg)
+    :type mtom: float
+    :param S_h: horizontal tail area (m2)
+    :type S_h: float
+    :param A_h: aspect ratio horizontal tail (-)
+    :type A_h: float
+    :param t_r_h: Horizontal tail maximum root thickness in (m)
+    :type t_r_h: float
+    """
+    # Convert to Imperial Units
 
-        self.mass = np.sum([mass_fur, mass_airco, mass_avionics, mass_elec, mass_fc])*0.45359237
+    w_to_lbs = 2.20462262*mtom
+    S_h_ft = 10.7639104*S_h
+    t_r_h_ft = 3.2808399*t_r_h
+
+    return (3.184*w_to_lbs**0.887*S_h_ft**0.101*A_h**0.138)/(174.04*t_r_h_ft**0.223)*0.45359237
+
+def calc_nacelle_weight(p_to:float)->float:
+    """Returns mass of nacelles, based on Cessna Mehod. See Eq. 5.29 (pg 78)
+    Pt 5. Component Weight Estimation (Roskam).
+
+    :param p_to: Take-off power (W)
+    :type p_to: float
+    """
+    # Convert to Imperial Units
+    p_to_hp = 0.001341*p_to
+
+    # Factor 0.24 is originally intended for horizontally opposed engines - 
+    # since aircraft is electric, it could be decreased.
+    return 0.24*p_to_hp*0.45359237
+
+
+def calc_misc_weight(mtom:float, oew:float, npax:int) -> float:
+    """Returns the mass of miscallenous subsystems:
+    - Flight control system (Cessna method Eq 7.2 pg 98)
+    - Electrical system (Cessna method Eq 7.13 pg 101)
+    - Avionics system (Torenbeek method Eq. 7.23 pg 103)
+    - Airconditioning system (Torenbeek method Eq 7.29 pg 104)
+    - Furnishing mass (Cessna method Eq 7.41 pg 107)
+     
+    All equations and pages refer to Pt 5. Component Weight Estimation (Roskam
+
+    :param mtom: Maximum take-off mass (Kg)
+    :type mtom: float
+    :param oew: Operating empty weight (Kg)
+    :type oew: float
+    :param npax: Number of passengers (including pilots)
+    :type npax: int
+    """
+    # Convert to Imperial Units
+    w_to_lbs = 2.20462262*mtom
+    w_oew_lbs = 2.20462262*oew
+
+    mass_fc = 0.0168*w_to_lbs                    # Flight control system 
+    mass_elec = 0.0268*w_to_lbs                  # Electrical system   
+    mass_avionics = 40 + 0.008*w_to_lbs          # Avionics system
+    mass_airco = 0.018*w_oew_lbs                 # Airconditioning 
+    mass_fur = 0.412*npax**1.145*w_to_lbs**0.489 # Furnishing 
+
+    return np.sum([mass_fur, mass_airco, mass_avionics, mass_elec, mass_fc])*0.45359237
 
 
         
 def get_weight_vtol(perf_par:AircraftParameters, fuselage:Fuselage, wing:Wing, engine:Engine, vtail:VeeTail, power:Power, test=False):
-    """ This function is used for the final design, it reuses some of the codes created during
-    the midterm. It computes the final weight of the vtol using the data structures created in the
-    final design phase
+    """ This function computes the weight of all components, and updates the data structures accordingly.
 
     It uses the following weight components
-    --------------------------------------
+    -----------------------------------------
     Powersystem mass -> Sized in power sizing, retrieved from perf class
     Engine mass -> Scimo engines and inverters used
     wing mass -> class II/wingbox code
@@ -736,27 +702,41 @@ def get_weight_vtol(perf_par:AircraftParameters, fuselage:Fuselage, wing:Wing, e
     landing gear mass -> Class II
     nacelle mass -> class II
     misc mass -> class II
-    --------------------------------------
-    """    
+    -----------------------------------------
 
+    """
 
     # Wing mass 
-    wing.wing_weight = WingWeight(perf_par.MTOM, wing.surface, perf_par.n_ult, wing.aspect_ratio).mass #This is automatically updated in the wing box calculations if they work
+    #This is automatically updated in the wing box calculations if they work
+    wing.wing_weight = calc_wing_weight(perf_par.MTOM, 
+                                        wing.surface, 
+                                        perf_par.n_ult, 
+                                        wing.aspect_ratio) 
 
     # Vtail mass
-    # Wing equation is used instead of horizontal tail because of the heay load of the engine which is attached
-    vtail.vtail_weight = WingWeight(perf_par.MTOM, vtail.surface, perf_par.n_ult, vtail.aspect_ratio).mass
+    # Wing equation is used instead of horizontal tail because of the heavy load of the engine which is attached
+    vtail.vtail_weight = calc_wing_weight(perf_par.MTOM, 
+                                          vtail.surface, 
+                                          perf_par.n_ult, 
+                                          vtail.aspect_ratio)
 
     #fuselage mass
-    fuselage.fuselage_weight = FuselageWeight(perf_par.MTOM, fuselage.length_fuselage, perf_par.n_ult, fuselage.width_fuselage_outer, fuselage.height_fuselage_outer, const.v_cr).mass
+    fuselage.fuselage_weight = calc_fuselage_weight(perf_par.MTOM, 
+                                                    fuselage.length_fuselage, 
+                                                    perf_par.n_ult, 
+                                                    fuselage.width_fuselage_outer, 
+                                                    fuselage.height_fuselage_outer, 
+                                                    const.v_cr,
+                                                    const.rho_cr,
+                                                    const.rho_sl) # TODO update
 
     #landing gear mass
-    perf_par.lg_mass = LandingGear(perf_par.MTOM).mass
+    perf_par.lg_mass = calc_landing_gear_weight(perf_par.MTOM)
 
     # Nacelle and engine mass
 
-    total_engine_mass = Powertrain().mass + Propeller().mass + 90 # 90 kg is for the pylon length
-    nacelle_mass = NacelleWeight(perf_par.hoverPower).mass
+    total_engine_mass = calc_powertrain_weight(const.n_engines) + 90 # 90 kg is for the pylon length
+    nacelle_mass = calc_nacelle_weight(perf_par.hoverPower)
 
     engine.totalmass = nacelle_mass + total_engine_mass
     engine.mass_perpowertrain = (engine.totalmass)/const.n_engines
@@ -764,9 +744,17 @@ def get_weight_vtol(perf_par:AircraftParameters, fuselage:Fuselage, wing:Wing, e
     engine.mass_pertotalengine = total_engine_mass/const.n_engines
 
     # Misc mass
-    perf_par.misc_mass = Miscallenous(perf_par.MTOM, perf_par.OEM, const.npax + 1).mass
+    perf_par.misc_mass = calc_misc_weight(perf_par.MTOM, perf_par.OEM, const.npax+1)
 
-    perf_par.OEM = np.sum([power.powersystem_mass, wing.wing_weight, vtail.vtail_weight, fuselage.fuselage_weight, nacelle_mass, total_engine_mass, perf_par.lg_mass, perf_par.misc_mass])
+    perf_par.OEM = np.sum([power.powersystem_mass, 
+                           wing.wing_weight, 
+                           vtail.vtail_weight, 
+                           fuselage.fuselage_weight, 
+                           nacelle_mass, 
+                           total_engine_mass, 
+                           perf_par.lg_mass, 
+                           perf_par.misc_mass])
+
     perf_par.MTOM =  perf_par.OEM + const.m_pl
 
     # Update weight not part of a data structure
