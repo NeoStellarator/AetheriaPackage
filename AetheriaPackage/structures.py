@@ -576,8 +576,8 @@ class WingWeight(Component):
         self.mass = 0.04674*(self.mtow_lbs**0.397)*(self.S_ft**0.36)*(self.n_ult**0.397)*(self.A**1.712)*0.453592
 
 class FuselageWeight(Component):
-    def __init__(self, mtom, lf, nult, wf, hf, Vc):
-        """ Returns fuselage weight, USAF method page 75 Pt 5, Eq 5.25. component weight estimaation Roskam.
+    def __init__(self, mtom, lf, nult, wf, hf, v_cr, rho_cr, rho_sl):
+        """ Returns fuselage weight, USAF method page 76 Pt V, Eq 5.25. component weight estimaation Roskam.
 
         :param mtom: Maximum take off weight
         :type mtom: float
@@ -589,8 +589,12 @@ class FuselageWeight(Component):
         :type wf: float
         :param hf: Maximum fuselage height (m)
         :type hf: float
-        :param Vc: design EAS cruise speed  (m/s)
-        :type Vc: float
+        :param v_cr: design cruise speed  (m/s)
+        :type v_cr: float
+        :param rho_cr: density at cruise altitude (Kg/m3)
+        :type rho_cr: float
+        :param rho_sl: density at sea-level altitude (Kg/m3)
+        :type rho_sl: float
 
         # THE FOLLOWING IS FOR CESSNA METHOD, WHICH IS NOT USED
         # :param max_per:  Maximium perimeter of the fuselage
@@ -606,7 +610,7 @@ class FuselageWeight(Component):
         self.nult = nult # ultimate load factor
         self.wf_ft = wf*3.28084 # width fuselage [ft]
         self.hf_ft = hf*3.28084 # height fuselage [ft]
-        self.Vc_kts = Vc*1.94384449 # design cruise speed [kts]
+        self.Vc_kts = v_cr*(rho_cr/rho_sl)**2*1.94384449 # design cruise speed [kts] (convert TAS -> EAS)
 
         self.fweigh_USAF = 200*((self.mtow_lbs*self.nult/10**5)**0.286*(self.lf_ft/10)**0.857*((self.wf_ft+self.hf_ft)/10)*(self.Vc_kts/100)**0.338)**1.1
         self.mass = self.fweigh_USAF*0.453592  
