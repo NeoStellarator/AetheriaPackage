@@ -243,7 +243,7 @@ def optimize_aetheria(init_estimate_path=r"input/default_initial_estimate.json",
     prob.driver = om.ScipyOptimizeDriver()
     prob.driver.options['optimizer'] = optimizer 
 
-    prob.setup(check=True)
+    # prob.setup(check=True)
 
     try:
         prob.run_driver()

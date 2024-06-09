@@ -9,7 +9,7 @@ import numpy as np
 import openmdao.api as om
 
 sys.path.insert(0, os.path.abspath("."))
-
+ 
 from AetheriaPackage.optimization import optimize_aetheria
 import AetheriaPackage.alert as alert
 

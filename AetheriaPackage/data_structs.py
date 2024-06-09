@@ -193,15 +193,16 @@ class Engine(BaseModel):
 
     pylon_length: float | None = None 
     totalmass: float | None   = None
+    # in the following three, mass_perx = mass of x per number of engines
     mass_perpowertrain: float | None  = None
     mass_pernacelle: float | None  = None
     mass_pertotalengine: float | None  = None
-    #nacelle_width: float = None
     thrust_coefficient: float | None  = None
     t_factor: float | None  = None
     hub_radius: float | None  = None
     prop_radius: float | None  = None
     prop_area: float | None  = None
+    prop_n_blades : int | None = None
 
     @classmethod
     def load(cls, file_path:FilePath):

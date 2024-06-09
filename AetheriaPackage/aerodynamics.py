@@ -45,7 +45,7 @@ def get_lift_distr(wing, aero, plot= False, test= False):
 
     # geometry object (which corresponds to an AVL input-file)
     geometry = Geometry(name="wing_joby",
-                        mach= const.v_cr/const.t_cr,
+                        mach= const.v_cr/const.a_cr,
                         reference_area= wing.surface,
                         reference_chord= wing.chord_mac,
                         reference_span=wing.span,
@@ -132,7 +132,7 @@ def get_strip_array(wing, aero, plot= False):
 
     # geometry object (which corresponds to an AVL input-file)
     geometry = Geometry(name="wing_joby",
-                        mach= const.v_cr/const.t_cr,
+                        mach= const.v_cr/const.a_cr,
                         reference_area= wing.surface,
                         reference_chord= wing.chord_mac,
                         reference_span=wing.span,
@@ -227,7 +227,7 @@ def get_tail_lift_distr(wing, veetail, aero, plot= False, test= False):
 
     # geometry object (which corresponds to an AVL input-file)
     geometry = Geometry(name="wing_joby",
-                        mach= const.v_cr/const.t_cr,
+                        mach= const.v_cr/const.a_cr,
                         reference_area= wing.surface,
                         reference_chord= wing.chord_mac,
                         reference_span=wing.span,
