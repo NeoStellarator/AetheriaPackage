@@ -18,17 +18,17 @@ import AetheriaPackage.alert as alert
 #------------------------------------------------------------------------------------------
 
 # set the target beta
-beta = 0.58
+beta = 0.460
 
 fpath_opt_var = r'scripts\beta_sensitivity\beta_sensitivity_optimization_variables.csv'
 default_estimate = r'scripts\beta_sensitivity\design_state_b=0.50_May-20_23.17.json'
 # default_estimate = r"input\\default_initial_estimate.json"
 
-work_dir = os.path.join('output', '_beta_sensitivity_3')
+work_dir = os.path.join('output', '_beta_sensitivity_4')
 
 # determining initial estimate file
 # -----------------------------------------------------------------------------------------
-init_estimate_beta = 0.55 # '-1' for closest beta, '0' for default estimate, 'x' for beta=x (if it exists)
+init_estimate_beta = -1 # '-1' for closest beta, '0' for default estimate, 'x' for beta=x (if it exists)
 
 all_optim_folder  = [os.path.join(work_dir, f) for f in os.listdir(work_dir) if os.path.isdir(os.path.join(work_dir, f))]
 
@@ -48,10 +48,10 @@ else:
         raise FileNotFoundError('There is no known optima to initialise this optimization!')
 
     if init_estimate_beta == -1: # closest beta
-        print(f'Looking for closest optima to beta={beta}...')
+        print(f'\nLooking for closest optima to b={beta:.3f} ...')
         init_file_idx = np.argmin(np.abs(beta_optim_folder-beta))
     elif init_estimate_beta in beta_optim_folder: # given beta
-        print(f'Looking for optima with beta={init_estimate_beta}...')
+        print(f'\nLooking for optima with b={init_estimate_beta:.3f} ...')
         init_file_idx_lst = np.where(beta_optim_folder==init_estimate_beta)[0]
         if init_file_idx_lst.size == 1:
             init_file_idx = init_file_idx_lst[0]
@@ -68,12 +68,12 @@ else:
             
             init_file_idx = init_file_idx_lst[i-1]
     else:
-        raise FileNotFoundError(f'There is no known optima using beta={init_estimate_beta}')
+        raise FileNotFoundError(f'There is no known optima using b={init_estimate_beta}')
     
     for file in os.listdir(all_optim_folder[init_file_idx]):
         if 'design' in file and 'state' in file: 
             og_initial_estimate_file = os.path.join(all_optim_folder[init_file_idx], file)
-    print(f'\nSet initial conditions of b={beta_optim_folder[init_file_idx]:.3f}\n ({og_initial_estimate_file})')
+    print(f'\nSet initial conditions of b={beta_optim_folder[init_file_idx]:.3f}\n ({og_initial_estimate_file})\n\n')
 
 # copying the initial estimate file to the working directory (temporarily)
 fname = os.path.split(og_initial_estimate_file)[-1]

@@ -1,3 +1,8 @@
+
+import os
+import sys
+sys.path.insert(0, os.path.abspath("."))
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -113,9 +118,8 @@ def plot_cylinder(ax, r, l, x0, y0, z0, caps=True, n=2, res=0.01, **style):
     n specifies the number of drawn sides (by default True)
     '''
     assert r>0, f'Negative radius={r} not possible!'
-    assert l>2*r, f'Cylinder geometry impossible: l<2r'
+    if caps: assert l>2*r, f'Cylinder geometry impossible: l<2r'
     
-
     lon = np.arange(0, l+res, res)
     shp = np.shape(lon)
     rad = r*np.ones(shp)
@@ -123,13 +127,6 @@ def plot_cylinder(ax, r, l, x0, y0, z0, caps=True, n=2, res=0.01, **style):
     if caps:
         rad[lon<r]     = np.sqrt(r**2-(lon[lon<r]-r)**2)
         rad[lon>(l-r)] = np.sqrt(r**2-(lon[lon>(l-r)]-(l-r))**2)
-    else:
-        phi = np.arange(0, 2*np.pi+res, res)
-        for x_init in [x0, x0+l]:
-            x = x_init*np.ones(np.shape(phi))
-            y = r*np.cos(phi)
-            z = r*np.sin(phi)
-            ax.plot(x, y, z, **style)
 
     theta_lst = np.arange(0, 2*np.pi, 2*np.pi/(2*n))
 
@@ -171,15 +168,14 @@ def plot_complete_tail(l_tail, l_tank, h0, b0, hc, bc, hf, bf, r_tank, linear_re
     set_axes_equal(ax)
 
 if __name__ == '__main__':
+    ax = plt.figure().add_subplot(projection='3d')
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
 
-    # ax = plt.figure().add_subplot(projection='3d')
-    # ax.set_xlabel('x')
-    # ax.set_ylabel('y')
-    # ax.set_zlabel('z')
+    plot_cylinder(ax,   0.18106105610457982, 4.97, 0, 0, 0, n=50, caps=True, color='purple', lw=0.8)
+    set_axes_equal(ax)
 
-    # plot_cylinder(ax,   0.18106105610457982, 4.97, 0, 0, 0, n=50, caps=True, color='purple', lw=0.8)
-    # set_axes_equal(ax)
-
-    plot_tail(5, 2, 1.5, 1.5, 0.4, 0.4, 0.01, 0.01, 0.2, 'b')
+    # plot_tail(5, 2, 1.5, 1.5, 0.4, 0.4, 0.01, 0.01, 0.2, 'b')
 
     plt.show()

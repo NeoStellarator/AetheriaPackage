@@ -579,7 +579,7 @@ def calc_fuselage_weight(mtom:float, lf:float, nult:float, wf:float,
     nult = nult # ultimate load factor
     wf_ft = wf*3.28084 # width fuselage [ft]
     hf_ft = hf*3.28084 # height fuselage [ft]
-    Vc_kts = v_cr*(rho_cr/rho_sl)**2*1.94384449 # design cruise speed [kts] (convert TAS -> EAS)
+    Vc_kts = v_cr*(rho_cr/rho_sl)**0.5*1.94384449 # design cruise speed [kts] (convert TAS -> EAS)
 
     fweigh_USAF = 200*((mtow_lbs*nult/10**5)**0.286*(lf_ft/10)**0.857*((wf_ft+hf_ft)/10)*(Vc_kts/100)**0.338)**1.1
     return fweigh_USAF*0.453592  
