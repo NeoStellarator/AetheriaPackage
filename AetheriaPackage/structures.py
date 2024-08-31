@@ -14,6 +14,158 @@ from AetheriaPackage.GeneralConstants import *
 from AetheriaPackage.data_structs import *
 from AetheriaPackage.basic_functions import Linear
 
+def calc_fuselage_wetsurface(D_fus:float, l_fuse:float, l_nose:float, 
+                     l_tail:float, D_end:float, plot:bool=False,
+                     **style):
+    '''Function to calculate the wetted area of the fuselage.
+    
+    The implemented models breaks the fuselage into the following three components:
+    1. Nosecone, as half of a 3D ellipsoid
+    2. Tailcone, as a sheared/skewed frustrum
+    3. Cylindrical part of fuselage.
+    
+    Throughout the function, the following abbreviations are used:
+    nc       : nosecone
+    tc       : tailcone
+    fuse     : fuselage
+    fun      : function
+    fun_diff : derivative function
+
+    The coordinate system is changed for the integration of each component, this makes
+    reference to x, y, z different between components.
+
+    Parameters
+    ----------
+    D_fus: FLOAT [m]
+        Maximum diameter of fuselage.
+    l_fuse: FLOAT [m]
+        Length of fuselage
+    l_nose: FLOAT [m]
+        Length of nosecone. 
+    l_tail: FLOAT [m]
+        Length of tailcone.
+    D_end: FLOAT [m]
+        Maximum cross-section length at the end of the tail.
+    plot: BOOL (default: FALSE)
+        Specify whether to plot the fuselage in 3D.
+    
+    Returns
+    -------
+    S : FLOAT [m2]
+        Wetted area of the fusealge.
+    '''
+    # Define constants for the rest of the module.
+    R0 = D_fus/2
+    Rf = D_end/2
+    l_cyl = l_fuse-l_tail-l_nose
+
+    # Initialise plotting, if needed.
+    if plot:
+        ax = plt.figure().add_subplot(projection='3d')
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
+    
+    # 1. NOSECONE
+    ### ------------------------------------------------------------
+    # Define the radius function (ellipse)
+    rho_fun      = lambda z: R0*np.sqrt(1-z**2/l_nose**2)
+    rho_fun_diff = lambda z: R0*(1/2)*(1-z**2/l_nose**2)**(-1/2)*(-2*z/l_nose**2)
+
+    # Defining the surface, as a parametrization of theta, z
+    r_nc    = lambda theta, z : np.array([rho_fun(z)*np.cos(theta),
+                                        rho_fun(z)*np.sin(theta), 
+                                        z                        ]) 
+
+    # Derivative of r_nc w.r.t. theta
+    r_nc_theta = lambda theta, z : np.array([-rho_fun(z)*np.sin(theta), 
+                                            rho_fun(z)*np.cos(theta) , 
+                                            np.zeros(np.shape(z))     ])
+
+    # Derivative of r_nc w.r.t. z
+    r_nc_z     = lambda theta, z : np.array([rho_fun_diff(z)*np.cos(theta), 
+                                            rho_fun_diff(z)*np.sin(theta), 
+                                            np.ones(np.shape(z))])
+
+    # Defining the integrand
+    nosecone_surface_integrand = lambda theta, z: np.linalg.norm(np.cross(r_nc_theta(theta, z), r_nc_z(theta, z)))
+
+    # integrate
+    S_nc = sp.integrate.dblquad(nosecone_surface_integrand, 0, l_nose, 0, 2*np.pi)[0]
+
+    if plot:
+        # plot the surface
+        z_lst = np.linspace(0, l_nose, 25)
+        t_lst = np.linspace(0, 2*np.pi, 100)
+
+        zz, tt = np.meshgrid(z_lst, t_lst)
+
+        xx, yy, zz = r_nc(tt, zz)
+
+        ax.scatter(-zz, xx, -yy-R0, s=1,**style)
+
+    # 2. TAILCONE
+    ### ------------------------------------------------------------
+
+    # Define radius of the cone as function of the length along the tail.
+    rho_fun = Linear(0, l_tail, R0, Rf)
+    # Define deviation of the centre of the circle as function of length
+    # along the tail
+    eps_fun = Linear(0, l_tail, 0, (R0-Rf))
+
+    # Defining the surface as a parametrization of theta, z
+    r_tc    = lambda theta, z : np.array([rho_fun(z)*np.sin(theta)                , 
+                                        R0 - eps_fun(z) + rho_fun(z)*np.cos(theta), 
+                                        z                                          ]) 
+
+    # Derivative of r_tc w.r.t. theta
+    r_tc_theta = lambda theta, z : np.array([rho_fun(z)*np.cos(theta) , 
+                                            -rho_fun(z)*np.sin(theta), 
+                                            np.zeros(np.shape(z))     ])
+
+    # Derivative of r_tc w.r.t. z
+    r_tc_z     = lambda theta, z : np.array([rho_fun.diff(z)*np.sin(theta), 
+                                             -eps_fun.diff(z)+rho_fun.diff(z)*np.cos(theta), 
+                                             np.ones(np.shape(z))])
+
+    # Defining the integrand
+    tailcone_surface_integrand = lambda theta, z: np.linalg.norm(np.cross(r_tc_theta(theta, z), r_tc_z(theta, z)))
+
+    # integrate
+    S_tl = sp.integrate.dblquad(tailcone_surface_integrand, 0, l_tail, 0, 2*np.pi)[0]
+
+    # account for cap a the end of the tail
+    S_tl += np.pi*Rf**2
+
+    if plot:
+        # plot the surface
+        z_lst = np.linspace(0, l_tail, 80)
+        t_lst = np.linspace(0, 2*np.pi, 100)
+
+        zz, tt = np.meshgrid(z_lst, t_lst)
+
+        xx, yy, zz = r_tc(tt, zz)
+
+        ax.scatter(zz+l_cyl, xx, -yy, s=1, **style)
+
+    # 3. Cylindrical part of Fuselage
+    ### ------------------------------------------------------------
+    S_cyl = 2*np.pi*R0*l_cyl
+
+    if plot:
+        tpt.plot_cylinder(ax, R0, l_cyl, 0, 0, -R0, caps=False, n=100, **style)
+
+        tpt.set_axes_equal(ax)
+        plt.show()
+
+    # ALL. Putting Everything Together
+    ### ------------------------------------------------------------
+
+    # Calculate total surface
+    S = S_nc + S_tl + S_cyl
+
+    return S
+
 
 def get_tank_radius(l_tank:float, V_tank:float, n:int, **kwargs)->float:
     '''
@@ -357,6 +509,11 @@ def get_fuselage_sizing(h2tank, fuelcell, perf_par, fuselage, power, plot_tail=F
     fuselage.bf = bf
     fuselage.hf = hf
     fuselage.length_fuselage = fuselage.length_cockpit + fuselage.length_cabin + l_tail + fuelcell.depth + const.fuselage_margin 
+    fuselage.wetted_area = calc_fuselage_wetsurface(D_fus=fuselage.diameter_fuselage, 
+                                                    l_fuse=fuselage.length_fuselage, 
+                                                    l_nose=fuselage.length_cockpit, 
+                                                    l_tail=fuselage.length_tail,
+                                                    D_end=max(hf, bf))
 
     return fuselage
 
@@ -544,55 +701,43 @@ def calc_wing_weight(mtom:float, S:float, n_ult:float, A:float) -> float:
 
     return 0.04674*(mtow_lbs**0.397)*(S_ft**0.36)*(n_ult**0.397)*(A**1.712)*0.453592
 
-def calc_fuselage_weight(mtom:float, lf:float, nult:float, wf:float, 
-                         hf:float, v_cr:float, rho_cr:float, rho_sl:float) -> float:
-    """ Returns mass of fuselage subsystem, using USAF method. 
-    See Eq 5.25 (pg 76) Pt 5. Component Weight Estimation (Roskam).
+def calc_fuselage_weight(mtom:float, n_ult:float, Sf:float, lt:float, 
+                         CL:float, CD:float, rho_cr:float, V_cr:float) -> float:
 
-    :param mtom: Maximum take off mass (Kg)
+    '''
+    Returns the mass of the fuselage subsystem, using Raymer Eq. 15.49 on
+    pg 405 (Aircraft Design: A Conceptual Approach).
+
+    :param mtom: maximum take off mass (Kg)
     :type mtom: float
-    :param lf: Fuselage length (m)
-    :type lf: float
-    :param nult: Ultimate load factor (-)
-    :type nult: float
-    :param wf: Maximum fuselage width (m)
-    :type wf: float
-    :param hf: Maximum fuselage height (m)
-    :type hf: float
-    :param v_cr: design cruise speed  (m/s)
-    :type v_cr: float
-    :param rho_cr: density at cruise altitude (Kg/m3)
+    :param n_ult: Ultimate load factor (-)
+    :type n_ult: float
+    :param Sf: Fuselage wetted area (m2)
+    :type Sf: float
+    :param lt: Tail length; wing quarter MAC to tail quarter MAC.
+    :type lt: float
+    :param CL: CL in cruise (-)
+    :type CL: float
+    :param CD: CD in cruise (-)
+    :type CD: float
+    :param rho_cr: Density in cruise (Kg/m3)
     :type rho_cr: float
-    :param rho_sl: density at sea-level altitude (Kg/m3)
-    :type rho_sl: float
+    :param V_cr: Cruise speed TAS (m/s)
+    :type V_cr: float
 
-    # THE FOLLOWING IS FOR CESSNA METHOD, WHICH IS NOT USED
-    # :param max_per:  Maximium perimeter of the fuselage
-    # :type max_per: float
-    # :param npax: Amount of passengers including pilot
-    # :type npax: int
-    """
+    '''
 
-    # Convert to Imperial Units
-    mtow_lbs = 2.20462 * mtom
-    lf_ft = lf*3.28084
-    nult = nult # ultimate load factor
-    wf_ft = wf*3.28084 # width fuselage [ft]
-    hf_ft = hf*3.28084 # height fuselage [ft]
-    Vc_kts = v_cr*(rho_cr/rho_sl)**0.5*1.94384449 # design cruise speed [kts] (convert TAS -> EAS)
+    q  = 0.5*rho_cr*V_cr**2 # compute dynamic pressure
 
-    fweigh_USAF = 200*((mtow_lbs*nult/10**5)**0.286*(lf_ft/10)**0.857*((wf_ft+hf_ft)/10)*(Vc_kts/100)**0.338)**1.1
-    return fweigh_USAF*0.453592  
+    # convert to imperial units
+    Sf_ft    = 3.28084**2 * Sf
+    mtom_lbs = 2.20462 * mtom
+    lt_ft    = 3.28084 * lt
+    q_lbft   = 0.020885434273039 * q
 
-    #if identifier == "J1":
-    #    # THIS IS CESSNA METHOD
-    #    fweight_high = 14.86*(mtow_lbs**0.144)*((lf_ft/max_per_ft)**0.778)*(lf_ft**0.383)*(npax**0.455)
-    #    mass = fweight_high*0.453592
-    #else:
-    #    fweight_high = 14.86*(mtow_lbs**0.144)*((lf_ft/max_per_ft)**0.778)*(lf_ft**0.383)*(npax**0.455)
-    #    fweight_low = 0.04682*(mtow_lbs**0.692)*(max_per_ft**0.374)*(lf_ft**0.590)
-    #    fweight = (fweight_high + fweight_low)/2
-    #    mass = fweight*0.453592
+    w_fus = 0.052*(Sf_ft**1.086)*((n_ult*mtom_lbs)**0.177)*(lt_ft**(-0.051))*((CL/CD)**(-0.072))*(q_lbft**0.241)
+
+    return w_fus*0.453592
 
 def calc_landing_gear_weight(mtom:float) -> float:
     """Returns the mass of the landing gear subsystem, using simplified Cessna method
@@ -689,15 +834,16 @@ def calc_misc_weight(mtom:float, oew:float, npax:int) -> float:
 
 
         
-def get_weight_vtol(perf_par:AircraftParameters, fuselage:Fuselage, wing:Wing, engine:Engine, vtail:VeeTail, power:Power, test=False):
+def get_weight_vtol(perf_par:AircraftParameters, fuselage:Fuselage, wing:Wing, aero:Aero, 
+                    engine:Engine, vtail:VeeTail, power:Power, test=False):
     """ This function computes the weight of all components, and updates the data structures accordingly.
 
     It uses the following weight components
     -----------------------------------------
     Powersystem mass -> Sized in power sizing, retrieved from perf class
     Engine mass -> Scimo engines and inverters used
-    wing mass -> class II/wingbox code
-    vtail mass -> Class II/wingbox code
+    wing mass -> class II
+    vtail mass -> Class II
     fuselage mass -> Class II
     landing gear mass -> Class II
     nacelle mass -> class II
@@ -721,14 +867,14 @@ def get_weight_vtol(perf_par:AircraftParameters, fuselage:Fuselage, wing:Wing, e
                                           vtail.aspect_ratio)
 
     #fuselage mass
-    fuselage.fuselage_weight = calc_fuselage_weight(perf_par.MTOM, 
-                                                    fuselage.length_fuselage, 
-                                                    perf_par.n_ult, 
-                                                    fuselage.width_fuselage_outer, 
-                                                    fuselage.height_fuselage_outer, 
-                                                    const.v_cr,
+    fuselage.fuselage_weight = calc_fuselage_weight(perf_par.MTOM,
+                                                    perf_par.n_ult,
+                                                    fuselage.wetted_area,
+                                                    vtail.length_wing2vtail+0.25*vtail.chord_mac-0.25*wing.chord_mac,
+                                                    aero.cL_cruise,
+                                                    aero.cd_cruise,
                                                     const.rho_cr,
-                                                    const.rho_sl) # TODO update
+                                                    const.v_cr)
 
     #landing gear mass
     perf_par.lg_mass = calc_landing_gear_weight(perf_par.MTOM)

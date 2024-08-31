@@ -280,21 +280,15 @@ class Fuselage(BaseModel):
     width_fuselage_inner: float = 1.88 + const.fuselage_margin 
     width_fuselage_outer: float | None = None
     volume_fuselage: float 
+    wetted_area: float
     length_cockpit: float = 2.103
     crash_box_area: float | None = None
-    
 
     # Crash diameter related
     bc: float | None = None # width crash area
     hc: float | None = None # height crash area
-    bf: float | None = None # width crash area
-    hf: float | None = None # height crash area
-
-    @property
-    def max_perimeter(self):
-        #TODO Please disucss a better explanation with Jorrick
-        return 2*self.height_fuselage_outer + 2*self.width_fuselage_outer
-
+    bf: float | None = None # end-of-tail width
+    hf: float | None = None # end-of-tail height
 
     @classmethod
     def load(cls, file_path:FilePath):

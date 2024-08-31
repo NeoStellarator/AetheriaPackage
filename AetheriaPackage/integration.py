@@ -102,7 +102,7 @@ def run_integration(file_path, counter_tuple=(1,1), json_path=None, dir_path=Non
     get_fuselage_sizing(Tank, Pstack, mission, fuselage, power)
 
     #-------------------- Weight Estimation -------------------------------------------
-    get_weight_vtol(mission, fuselage, wing, engine, vtail, power)
+    get_weight_vtol(mission, fuselage, wing, aero, engine, vtail, power)
 
     #-------------------- dumping update parameters to json file ----------------------
     if dir_path is not None:
