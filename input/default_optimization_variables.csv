@@ -1,6 +1,6 @@
-var_type,alias,json_route,show,unit,lower,upper
-design,AR,Wing/aspect_ratio,True,-,5,15   
-constraint,MTOM,AircraftParameters/MTOM,False,Kg,None,3175 
-constraint,span,Wing/span,False,m,7.4,14   
-constraint,length_fuselage,Fuselage/length_fuselage,False,m,None,14   
-objective,energy,AircraftParameters/mission_energy,True,Wh,
+var_type,alias,json_route,show,unit,lower,upper,order_magnitude
+design,AR,Wing/aspect_ratio,True,-,5,15,None
+constraint,MTOM,AircraftParameters/MTOM,False,Kg,None,3175,None 
+constraint,span,Wing/span,False,m,7.4,14,None
+constraint,length_fuselage,Fuselage/length_fuselage,False,m,None,14,None
+objective,energy,AircraftParameters/mission_energy,True,Wh,None,None,1e9

@@ -576,7 +576,7 @@ class Wing(BaseModel):
 
 # Propeller structure from tuduam module
 class Propeller(BaseModel):
-    n_blades:float
+    n_blades:int
     """The number of blades on the propellor"""    
     r_prop:float
     """"Propeller radius"""

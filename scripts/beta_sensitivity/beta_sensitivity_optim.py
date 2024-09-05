@@ -18,17 +18,17 @@ import AetheriaPackage.alert as alert
 #------------------------------------------------------------------------------------------
 
 # set the target beta
-beta = 0.460
+beta = 0.500
 
 fpath_opt_var = r'scripts\beta_sensitivity\beta_sensitivity_optimization_variables.csv'
 default_estimate = r'scripts\beta_sensitivity\design_state_b=0.50_May-20_23.17.json'
 # default_estimate = r"input\\default_initial_estimate.json"
 
-work_dir = os.path.join('output', '_beta_sensitivity_4')
+work_dir = os.path.join('output', '_beta_sensitivity_5')
 
 # determining initial estimate file
 # -----------------------------------------------------------------------------------------
-init_estimate_beta = -1 # '-1' for closest beta, '0' for default estimate, 'x' for beta=x (if it exists)
+init_estimate_beta = 0 # '-1' for closest beta, '0' for default estimate, 'x' for beta=x (if it exists)
 
 all_optim_folder  = [os.path.join(work_dir, f) for f in os.listdir(work_dir) if os.path.isdir(os.path.join(work_dir, f))]
 
@@ -96,4 +96,5 @@ optimize_aetheria(init_estimate_path=initial_estimate_path,
                   save_dir=work_dir,
                   move_init_estimate=True,
                   fname_addition=f'b={beta:.3f}',
-                  beep_finish=2)
+                  beep_finish=2,
+                  scaling_report=False)

@@ -49,6 +49,7 @@
         "diameter_fuselage": 2.0,
         "upsweep": 0.3181089452108155,
         "volume_fuselage": 8.0,
+        "wetted_area": 60,
         "length_cabin": 2.7,
         "height_cabin": 1.6,
         "height_fuselage_outer": 2.009110359905379,

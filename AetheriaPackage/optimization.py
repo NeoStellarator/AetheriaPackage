@@ -46,7 +46,7 @@ class VTOLOptimization(om.ExplicitComponent):
         constraint variables
         
         :param design_variables: Design variables to be used. 
-        :type design_varaibles: List[dict_variable]
+        :type design_variables: List[dict_variable]
         :param constraint_variables: Constraint variables to be used. 
         :type constraint_variables: List[dict_variable]
         :param objective_variables: Objective variables to be used. 
@@ -205,6 +205,7 @@ def optimize_aetheria(init_estimate_path=r"input/default_initial_estimate.json",
                       optimization_variables_path=r'input/default_optimization_variables.csv',
                       optimizer='COBYLA',
                       beep_finish=3,
+                      scaling_report=False,
                       **kwargs):
     
     t0 = time.localtime()
@@ -221,7 +222,6 @@ def optimize_aetheria(init_estimate_path=r"input/default_initial_estimate.json",
     with open(init_estimate_path, 'r') as f:
         init_data = json.load(f)  
 
-
     # defining problem object
     des = 'Integrated_design'
     prob = om.Problem()
@@ -233,21 +233,27 @@ def optimize_aetheria(init_estimate_path=r"input/default_initial_estimate.json",
     
     # Define design variables, constraints and objectives in the problem object.
     for v in design_variables:
-        prob.model.add_design_var(des+'.'+v['alias'], lower=v['lower'], upper=v['upper'])
+        prob.model.add_design_var(des+'.'+v['alias'], lower=v['lower'], upper=v['upper'], ref0=v['lower'], ref=v['upper'])
         prob.model.set_input_defaults(des+'.'+v['alias'], init_data[v['json_route'][0]][v['json_route'][1]])
     for v in constraint_variables:
-        prob.model.add_constraint(des+'.'+v['alias'], lower=v['lower'], upper=v['upper'])
+        prob.model.add_constraint(des+'.'+v['alias'], lower=v['lower'], upper=v['upper'], ref0=v['lower'], ref=v['upper'])
     for v in objective_variables:
-        prob.model.add_objective(des+'.'+v['alias'])
+        prob.model.add_objective(des+'.'+v['alias'], ref=v['order_magnitude'])
     
     prob.driver = om.ScipyOptimizeDriver()
     prob.driver.options['optimizer'] = optimizer 
 
     prob.setup()
 
+
     try:
         prob.run_driver()
     finally:
+
+        if scaling_report:
+            report_path = os.path.join(os.path.split(init_estimate_path)[0], 'driver_scaling_report.html')
+            prob.driver.scaling_report(outfile=report_path, show_browser=True)
+        
         t1 = time.localtime()
         #   print final time
         line = f'''
