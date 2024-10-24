@@ -133,8 +133,8 @@ def run_integration(file_path, counter_tuple=(1,1), json_path=None, dir_path=Non
         return mission, wing, engine, aero, fuselage, stability, power
 
 
-def multi_run(file_path, outer_loop_counter, json_path, dir_path, eps_exit=0.005, max_inner_loops=10,
-              save_inner_convergence=False):
+def multi_run(file_path, outer_loop_counter, json_path, dir_path, save_inner_convergence=False,
+              max_inner_loops=25, eps_exit=0.001, n_min_eps=3):
         print(f"{'='*30}\nOuter loop iteration = {outer_loop_counter}\n{'='*30}")
         eps_lst = [] # store the consecutive differences
 
@@ -154,12 +154,14 @@ def multi_run(file_path, outer_loop_counter, json_path, dir_path, eps_exit=0.005
             #log data so that convergences can be monitored live
             print(f"MTOM: {MTOM_two} [Kg]")
 
-            #break out of the convergences loop if the mtom convergences below 0.5%
+            #break out of the convergences loop if the mtom convergences below eps_exit
             eps = abs(MTOM_two - MTOM_one) / MTOM_one
             eps_lst.append(eps)
-            if eps < eps_exit and i>5: # at least have 5 iterations
-                print(f" Inner loop has converged -> epsilon is: {100*eps:.3f} %")
-                break
+
+            if len(eps) >= n_min_eps:
+                if max(eps[-n_min_eps:]) < eps_exit: 
+                    print(f" Inner loop has converged -> epsilon is: {100*eps:.4f} %")
+                    break
             MTOM_one = MTOM_two
             
         if save_inner_convergence:
@@ -175,5 +177,6 @@ def multi_run(file_path, outer_loop_counter, json_path, dir_path, eps_exit=0.005
             if not os.path.exists(save_dir):
                 os.mkdir(save_dir)
             
-            plt.savefig(os.path.join(save_dir, f'outer_{outer_loop_counter:>02}_convergence_plot.png'), dpi=300)
+            plt.savefig(os.path.join(save_dir, f'outer_{outer_loop_counter:>02}_convergence_plot.png'), 
+                        dpi=300, bbox_inches='tight')
 
