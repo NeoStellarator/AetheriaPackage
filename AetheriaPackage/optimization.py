@@ -14,13 +14,13 @@ sys.path.insert(0, os.path.abspath("."))
 from AetheriaPackage.integration import run_integration, multi_run
 import AetheriaPackage.alert as alert
 
-#TODO add scalers.
 class VTOLOptimization(om.ExplicitComponent):
     def __init__(self, 
                  design_variables,
                  constraint_variables,
                  objective_variables,
                  max_inner_loops = 10,
+                 save_inner_convg = False,
                  save_dir=r'output', 
                  init_estimate_path=r"input/default_initial_estimate.json", 
                  move_init_estimate=False, 
@@ -53,6 +53,8 @@ class VTOLOptimization(om.ExplicitComponent):
         :type objective_variables: List[dict_variable]
         :param max_inner_loops: Maximum number of inner loops.
         :type max_inner_loops: int
+        :param save_inner_convg: Save inner convergence plots (see integration.py > multirun).
+        :type save_inner_convg: bool
         :param init_estimate_path: Path to initial estimate .json file. 
             By default "input/initial_estimate.json"
         :type init_estimate_path: str
@@ -79,7 +81,8 @@ class VTOLOptimization(om.ExplicitComponent):
         self._obj_var  = objective_variables
 
         self.max_inner_loops = max_inner_loops
-
+        self.save_inner_convg = save_inner_convg
+        
         # initialising working directory
         self.init_estimate_path = init_estimate_path
         
@@ -138,7 +141,8 @@ class VTOLOptimization(om.ExplicitComponent):
         #---------------- Computing new values -----------------------------
 
         multi_run(self.init_estimate_path, self.outerloop_counter, 
-                  self.json_path, self.dir_path, max_inner_loops=self.max_inner_loops)
+                  self.json_path, self.dir_path, max_inner_loops=self.max_inner_loops,
+                  save_inner_convergence=self.save_inner_convg)
 
         #----------------- Giving new values to the optimizer -------------------------
         with open(self.json_path, 'r') as f:

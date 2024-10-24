@@ -4,6 +4,7 @@ import json
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from AetheriaPackage.data_structs import *
 from AetheriaPackage.sim_contr import size_vtail_opt, span_vtail
@@ -132,13 +133,14 @@ def run_integration(file_path, counter_tuple=(1,1), json_path=None, dir_path=Non
         return mission, wing, engine, aero, fuselage, stability, power
 
 
-def multi_run(file_path, outer_loop_counter, json_path, dir_path, max_inner_loops=10):
+def multi_run(file_path, outer_loop_counter, json_path, dir_path, eps_exit=0.005, max_inner_loops=10,
+              save_inner_convergence=False):
         print(f"{'='*30}\nOuter loop iteration = {outer_loop_counter}\n{'='*30}")
+        eps_lst = [] # store the consecutive differences
 
         with open(json_path, 'r') as f:
             data = json.load(f)
             MTOM_one = data["AircraftParameters"]["MTOM"]
-
         print(f"MTOM: {MTOM_one} [Kg]")
         for i in range(1, max_inner_loops+1):
             print(f'\nInner loop Iteration = {i}') 
@@ -153,10 +155,25 @@ def multi_run(file_path, outer_loop_counter, json_path, dir_path, max_inner_loop
             print(f"MTOM: {MTOM_two} [Kg]")
 
             #break out of the convergences loop if the mtom convergences below 0.5%
-            epsilon = abs(MTOM_two - MTOM_one) / MTOM_one
-            if epsilon < 0.005:
-                print(f" Inner loop has converged -> epsilon is: {epsilon * 100}%")
+            eps = abs(MTOM_two - MTOM_one) / MTOM_one
+            eps_lst.append(eps)
+            if eps < eps_exit and i>5: # at least have 5 iterations
+                print(f" Inner loop has converged -> epsilon is: {100*eps:.3f} %")
                 break
             MTOM_one = MTOM_two
+            
+        if save_inner_convergence:
+            iteration_count = range(1, len(eps_lst)+1)
 
+            fig, ax = plt.subplots()
+            ax.semilogy(iteration_count, eps_lst)
+            ax.set_title(f'Outer Loop: {outer_loop_counter}')
+            ax.set_xlabel('Inner Loop Iteration')
+            ax.set_ylabel('eps')
+            
+            save_dir = os.path.join(dir_path, 'inner_convergence_plots')
+            if not os.path.exists(save_dir):
+                os.mkdir(save_dir)
+            
+            plt.savefig(os.path.join(save_dir, f'outer_{outer_loop_counter:>02}_convergence_plot.png'), dpi=300)
 
