@@ -280,7 +280,7 @@ class Fuselage(BaseModel):
     width_fuselage_inner: float = 1.88 + const.fuselage_margin 
     width_fuselage_outer: float | None = None
     volume_fuselage: float 
-    wetted_area: float
+    wetted_area: float # | None = None
     length_cockpit: float = 2.103
     crash_box_area: float | None = None
 
