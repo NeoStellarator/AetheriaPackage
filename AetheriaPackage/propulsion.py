@@ -13,7 +13,7 @@ from   AetheriaPackage.ISA_tool import ISA
 
 # much of the code here has been adopted from tuduam
 
-def propcalc(aero, mission:AircraftParameters, engine:Engine, h_cruise:float, mesh_size=5):
+def propcalc(aero, mission:AircraftParameters, engine:Engine, h_cruise:float, mesh_size=4):
     
     data_path = r'input\Propulsion\propellerairfoil'
     coord_path = r'input\Propulsion\wortman.dat'

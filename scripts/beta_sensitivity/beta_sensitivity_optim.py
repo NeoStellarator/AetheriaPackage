@@ -11,7 +11,7 @@ import openmdao.api as om
 sys.path.insert(0, os.path.abspath("."))
  
 from AetheriaPackage.optimization import optimize_aetheria
-import AetheriaPackage.alert as alert
+import AetheriaPackage.repo_tools as repo_tools
 
 #------------------------------------------------------------------------------------------
 #                        BETA-SENSITIVITY -- OPTIMIZATIONS
@@ -21,10 +21,9 @@ import AetheriaPackage.alert as alert
 beta = 0.500
 
 fpath_opt_var = r'scripts\beta_sensitivity\beta_sensitivity_optimization_variables.csv'
-default_estimate = r'scripts\beta_sensitivity\design_state_b=0.50_May-20_23.17.json'
-# default_estimate = r"input\\default_initial_estimate.json"
+default_estimate = r'scripts\beta_sensitivity\design_state_b=0.500_Oct-24_20.06.json'
 
-work_dir = os.path.join('output', '_beta_sensitivity_5')
+work_dir = os.path.join('output', '_beta_sensitivity_6')
 
 # determining initial estimate file
 # -----------------------------------------------------------------------------------------
@@ -42,7 +41,7 @@ beta_optim_folder = np.array(beta_optim_folder)
 
 if init_estimate_beta == 0:  # default estimate
     og_initial_estimate_file = default_estimate
-    print('Set initial conditions to the default (see input\\default_initial_estimate.json)')
+    print(f'Set initial conditions to the default (see {default_estimate})')
 else:
     if len(all_optim_folder) == 0: # empty directory
         raise FileNotFoundError('There is no known optima to initialise this optimization!')
@@ -93,8 +92,15 @@ with open(initial_estimate_path, 'w') as f:
 # -----------------------------------------------------------------------------------------
 optimize_aetheria(init_estimate_path=initial_estimate_path,
                   optimization_variables_path=fpath_opt_var,
+                  optimizer='SLSQP',
+                  beep_finish=2,
+                  scaling_report=True,
+                  inner_max_loops=25, 
+                  inner_eps_exit=0.001, 
+                  inner_n_min_eps=3,
+                  inner_convg_saveplot=True,
                   save_dir=work_dir,
                   move_init_estimate=True,
                   fname_addition=f'b={beta:.3f}',
-                  beep_finish=2,
-                  scaling_report=False)
+                  measure_perf=True,
+                  )

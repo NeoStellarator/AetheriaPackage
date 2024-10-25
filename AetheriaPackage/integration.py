@@ -14,7 +14,10 @@ from AetheriaPackage.propulsion import propcalc
 from AetheriaPackage.structures import get_gust_manoeuvr_loadings, get_weight_vtol, get_fuselage_sizing
 from AetheriaPackage.power import power_system_convergences
 
-def run_integration(file_path, counter_tuple=(1,1), json_path=None, dir_path=None):
+import AetheriaPackage.repo_tools as repo_tools
+
+def run_integration(file_path, counter_tuple=(1,1), json_path=None, dir_path=None,
+                    measure_perf=False):
     """ Runs an entire integraton loop
 
     :param file_path: Path to the initial estmate
@@ -25,9 +28,16 @@ def run_integration(file_path, counter_tuple=(1,1), json_path=None, dir_path=Non
     :type json_path: str, optional
     :param dir_path: Path to working directory, defaults to None
     :type dir_path: str, optional
-    """    
+    :param measure_perf: Record the time intervals of each subroutine
+    :type measure_perf: bool, optional (default False)
+    """
+
+    if measure_perf: save_path_perf = os.path.join(dir_path, 'perf.csv')
+
     #----------------------------- Initialize classes --------------------------------
     if counter_tuple == (1,1):
+        if measure_perf: repo_tools.start_time(save_path_perf, ['it', 'desc'])
+
         IonBlock = Battery(Efficiency= 0.9)
         Pstack = FuelCell()
         Tank = HydrogenTank()
@@ -51,14 +61,17 @@ def run_integration(file_path, counter_tuple=(1,1), json_path=None, dir_path=Non
         vtail = VeeTail.load(json_path)
         stability = Stab.load(json_path)
         power = Power.load(json_path)
+    if measure_perf: repo_tools.lap_time(save_path_perf, it=counter_tuple, desc='Initialisation')
     #----------------------------------------------------------------------------------
 
     #-------------------- Preliminary Sizing ------------------------------------------
     get_wing_power_loading(mission, wing, engine, aero)
     get_gust_manoeuvr_loadings(mission, aero)
+    if measure_perf: repo_tools.lap_time(save_path_perf, it=counter_tuple, desc='Preliminary')
     
     #-------------------- Planform Sizing ---------------------------------------------
     wing_planform(wing, mission.MTOM, mission.wing_loading_cruise)
+    if measure_perf: repo_tools.lap_time(save_path_perf, it=counter_tuple, desc='Planform')
 
     #-------------------- Aerodynamic Sizing ------------------------------------------
     alpha_arr,cL_lst, induced_drag_lst =  get_aero_planform(aero, wing, 20)
@@ -75,15 +88,20 @@ def run_integration(file_path, counter_tuple=(1,1), json_path=None, dir_path=Non
     CL_CD_endurance_opt = (cL_lst**(3/2))/(induced_drag_lst + aero.cd0_cruise)
     aero.cL_endurance = cL_lst[np.argmax(CL_CD_endurance_opt)]
     aero.downwash_angle_stall =  np.average(weissinger_l(wing, aero.alpha_approach, 20)[3])
+    if measure_perf: repo_tools.lap_time(save_path_perf, it=counter_tuple, desc='Aerodynamics')
 
     #-------------------- Propulsion --------------------------------------------------
     propcalc(aero, mission=mission, engine=engine, h_cruise= const.h_cruise)
+    if measure_perf: repo_tools.lap_time(save_path_perf, it=counter_tuple, desc='Propulsion')
     
     #-------------------- Flight Performance ------------------------------------------
     get_performance_updated(aero, mission, wing,engine, power)
+    if measure_perf: repo_tools.lap_time(save_path_perf, it=counter_tuple, desc='Flight Performance')
 
     #-------------------- Power System Sizing -----------------------------------------
-    power_system_convergences(power, mission) 
+    power_system_convergences(power, mission)
+    if measure_perf: repo_tools.lap_time(save_path_perf, it=counter_tuple, desc='Power')
+
 
     #-------------------- Stability and Control ---------------------------------------
     size_vtail_opt( WingClass=wing,
@@ -97,13 +115,16 @@ def run_integration(file_path, counter_tuple=(1,1), json_path=None, dir_path=Non
                     CLh_initguess=-0.1,
                     stepsize = 5e-2,
                 ) 
+    if measure_perf: repo_tools.lap_time(save_path_perf, it=counter_tuple, desc='Stability & Control')
 
     #-------------------- Structures --------------------------------------------------
     vtail_planform(vtail)
     get_fuselage_sizing(Tank, Pstack, mission, fuselage, power)
+    if measure_perf: repo_tools.lap_time(save_path_perf, it=counter_tuple, desc='Structures')
 
     #-------------------- Weight Estimation -------------------------------------------
     get_weight_vtol(mission, fuselage, wing, aero, engine, vtail, power)
+    if measure_perf: repo_tools.lap_time(save_path_perf, it=counter_tuple, desc='Weight Estimation')
 
     #-------------------- dumping update parameters to json file ----------------------
     if dir_path is not None:
@@ -116,6 +137,7 @@ def run_integration(file_path, counter_tuple=(1,1), json_path=None, dir_path=Non
         fuselage.dump(json_path)
         stability.dump(json_path)
         power.dump(json_path)
+    if measure_perf: repo_tools.lap_time(save_path_perf, it=counter_tuple, desc='Updating Design')
 
     #-------------------- Log all variables from current iterations -------------------
 
@@ -129,22 +151,25 @@ def run_integration(file_path, counter_tuple=(1,1), json_path=None, dir_path=Non
             else: 
                 pd.DataFrame([data]).to_csv(save_path, columns= list(data.keys()), index=False)
                     # Read the output from the subprocess
+        if measure_perf: repo_tools.lap_time(save_path_perf, it=counter_tuple, desc='Logging')
+        
     else:
         return mission, wing, engine, aero, fuselage, stability, power
 
 
-def multi_run(file_path, outer_loop_counter, json_path, dir_path, save_inner_convergence=False,
-              max_inner_loops=25, eps_exit=0.001, n_min_eps=3):
+def multi_run(file_path, outer_loop_counter, json_path, dir_path, inner_convg_saveplot=False,
+              inner_max_loops=25, inner_eps_exit=0.001, inner_n_min_eps=3, measure_perf=False):
         print(f"{'='*30}\nOuter loop iteration = {outer_loop_counter}\n{'='*30}")
         eps_lst = [] # store the consecutive differences
 
         with open(json_path, 'r') as f:
             data = json.load(f)
             MTOM_one = data["AircraftParameters"]["MTOM"]
-        print(f"MTOM: {MTOM_one} [Kg]")
-        for i in range(1, max_inner_loops+1):
+        print(f"MTOM: {MTOM_one:.4f} [Kg]")
+        for i in range(1, inner_max_loops+1):
             print(f'\nInner loop Iteration = {i}') 
-            run_integration(file_path  ,(outer_loop_counter, i),json_path, dir_path) # run integration files which can be looped
+            run_integration(file_path  ,(outer_loop_counter, i),json_path, dir_path,
+                            measure_perf=measure_perf) # run integration files which can be looped
 
             # load data so that convergences can be checked
             with open(json_path, 'r') as f:
@@ -158,13 +183,13 @@ def multi_run(file_path, outer_loop_counter, json_path, dir_path, save_inner_con
             eps = abs(MTOM_two - MTOM_one) / MTOM_one
             eps_lst.append(eps)
 
-            if len(eps) >= n_min_eps:
-                if max(eps[-n_min_eps:]) < eps_exit: 
+            if len(eps_lst) >= inner_n_min_eps:
+                if max(eps_lst[-inner_n_min_eps:]) < inner_eps_exit: 
                     print(f" Inner loop has converged -> epsilon is: {100*eps:.4f} %")
                     break
             MTOM_one = MTOM_two
             
-        if save_inner_convergence:
+        if inner_convg_saveplot:
             iteration_count = range(1, len(eps_lst)+1)
 
             fig, ax = plt.subplots()

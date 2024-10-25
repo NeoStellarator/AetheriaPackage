@@ -12,15 +12,13 @@ import openmdao.api as om
 sys.path.insert(0, os.path.abspath("."))
 
 from AetheriaPackage.integration import run_integration, multi_run
-import AetheriaPackage.alert as alert
+import AetheriaPackage.repo_tools as repo_tools
 
 class VTOLOptimization(om.ExplicitComponent):
     def __init__(self, 
                  design_variables,
                  constraint_variables,
                  objective_variables,
-                 max_inner_loops = 10,
-                 save_inner_convg = False,
                  save_dir=r'output', 
                  init_estimate_path=r"input/default_initial_estimate.json", 
                  move_init_estimate=False, 
@@ -70,19 +68,33 @@ class VTOLOptimization(om.ExplicitComponent):
         :type fname_addition: str
                 
         '''
-
-        super().__init__(**kwargs)
-
         start_time = dt.datetime.now()
         
+        # extracting the inner loop configurations from the kwargs
+        # before passing it to super()
+
+        self.inner_loop_config = {}
+        for key, val in kwargs.items():
+            if 'inner' in key.lower(): 
+                self.inner_loop_config[key] = val
+        
+        if 'measure_perf' in kwargs.keys():
+            self.measure_perf = kwargs['measure_perf']
+            del kwargs['measure_perf']
+        else:
+            self.measure_perf = False
+
+        
+        for key in self.inner_loop_config.keys():
+            del kwargs[key]
+        
+        super().__init__(**kwargs)
+
         # storing variable names
         self._des_var  = design_variables
         self._cons_var = constraint_variables
         self._obj_var  = objective_variables
 
-        self.max_inner_loops = max_inner_loops
-        self.save_inner_convg = save_inner_convg
-        
         # initialising working directory
         self.init_estimate_path = init_estimate_path
         
@@ -140,9 +152,12 @@ class VTOLOptimization(om.ExplicitComponent):
         
         #---------------- Computing new values -----------------------------
 
-        multi_run(self.init_estimate_path, self.outerloop_counter, 
-                  self.json_path, self.dir_path, max_inner_loops=self.max_inner_loops,
-                  save_inner_convergence=self.save_inner_convg)
+        multi_run(self.init_estimate_path, 
+                  self.outerloop_counter, 
+                  self.json_path, 
+                  self.dir_path, 
+                  measure_perf=self.measure_perf, 
+                  **self.inner_loop_config)
 
         #----------------- Giving new values to the optimizer -------------------------
         with open(self.json_path, 'r') as f:
@@ -246,7 +261,7 @@ def optimize_aetheria(init_estimate_path=r"input/default_initial_estimate.json",
     
     prob.driver = om.ScipyOptimizeDriver()
     prob.driver.options['optimizer'] = optimizer 
-
+    print(prob.driver.options['optimizer'])
     prob.setup()
 
 
@@ -255,7 +270,12 @@ def optimize_aetheria(init_estimate_path=r"input/default_initial_estimate.json",
     finally:
 
         if scaling_report:
-            report_path = os.path.join(os.path.split(init_estimate_path)[0], 'driver_scaling_report.html')
+            if 'save_dir' in kwargs:
+                report_path = os.path.join(kwargs.get('save_dir'), 
+                                           'driver_scaling_report.html')
+            else:
+                report_path = os.path.join(os.path.split(init_estimate_path)[0], 
+                                           'driver_scaling_report.html')
             prob.driver.scaling_report(outfile=report_path, show_browser=True)
         
         t1 = time.localtime()
@@ -268,7 +288,7 @@ def optimize_aetheria(init_estimate_path=r"input/default_initial_estimate.json",
         print(line)
                 
         # alert user that program is finished
-        alert.play_sound(repetitions=beep_finish)
+        repo_tools.play_sound(repetitions=beep_finish)
 
 
 if __name__ == '__main__':
