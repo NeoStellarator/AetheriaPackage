@@ -32,6 +32,8 @@ This code was meant to be used in integration.py
 run 'start_time' at the beginning of the code to initialise the file and columns
 run 'lap_time' to record the time on the file, with additional information if needed.
 
+The analysis of the data can be found in scripts>comp_perf_eval.ipynb.
+
 parameters
 ----------
 extra_cols : list
@@ -39,6 +41,10 @@ extra_cols : list
 data : kwargs
     Specify the values associated with each of 'extra_cols'. 
     e.g. iteration=(1,1), description='structures'
+
+BUG: When measure_perf=True in MDO, after around 10-20 min of execution, a PERMISSION_ERROR
+     pops. It is recommended to leave measure_perf=False for important optimizations. 
+
 '''
 
 def start_time(save_path, extra_cols):
@@ -57,6 +63,7 @@ def start_time(save_path, extra_cols):
 
 def lap_time(save_path, **data):
     assert os.path.exists(save_path), 'File does not exist!'
+
     df = pd.read_csv(save_path, header=0)
 
     file_cols = df.columns.values.tolist()
@@ -79,7 +86,8 @@ def lap_time(save_path, **data):
     
     df_new_line = pd.DataFrame([new_line])
     df = pd.concat([df, df_new_line], ignore_index=True)
-    df.to_csv(save_path, index=False)
+
+    df.to_csv(save_path, index=False, mode='a')
 
 
 if __name__ == '__main__':

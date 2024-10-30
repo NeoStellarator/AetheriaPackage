@@ -18,16 +18,19 @@ import AetheriaPackage.repo_tools as repo_tools
 #------------------------------------------------------------------------------------------
 
 # set the target beta
-beta = 0.500
+beta = 0.525
 
 fpath_opt_var = r'scripts\beta_sensitivity\beta_sensitivity_optimization_variables.csv'
 default_estimate = r'scripts\beta_sensitivity\design_state_b=0.500_Oct-24_20.06.json'
 
-work_dir = os.path.join('output', '_beta_sensitivity_6')
+# save directory with all optimizations
+work_dir = os.path.join('output', '_beta_sensitivity_7', 'COBYLA')
+work_dir = os.path.realpath(work_dir)
+
 
 # determining initial estimate file
 # -----------------------------------------------------------------------------------------
-init_estimate_beta = 0 # '-1' for closest beta, '0' for default estimate, 'x' for beta=x (if it exists)
+init_estimate_beta = -1 # '-1' for closest beta, '0' for default estimate, 'x' for beta=x (if it exists)
 
 all_optim_folder  = [os.path.join(work_dir, f) for f in os.listdir(work_dir) if os.path.isdir(os.path.join(work_dir, f))]
 
@@ -92,15 +95,17 @@ with open(initial_estimate_path, 'w') as f:
 # -----------------------------------------------------------------------------------------
 optimize_aetheria(init_estimate_path=initial_estimate_path,
                   optimization_variables_path=fpath_opt_var,
-                  optimizer='SLSQP',
+                  optimizer_settings={'optimizer':'COBYLA',
+                                      'tol':1e-6},
                   beep_finish=2,
                   scaling_report=True,
-                  inner_max_loops=25, 
-                  inner_eps_exit=0.001, 
-                  inner_n_min_eps=3,
-                  inner_convg_saveplot=True,
+                  inner_convg_settings={'inner_max_loops':25, 
+                                       'inner_eps_exit':0.001, 
+                                       'inner_n_min_eps':2,
+                                       'inner_convg_saveplot':True}, 
                   save_dir=work_dir,
                   move_init_estimate=True,
                   fname_addition=f'b={beta:.3f}',
-                  measure_perf=True,
+                  measure_perf=False,
+                  
                   )

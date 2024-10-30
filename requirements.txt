@@ -1,8 +1,19 @@
-numpy==1.24.3
-openmdao==3.26.0
-pandas==1.4.2
-scipy== 1.10.1
+python==3.12
+# Core libraries
+numpy~=1.26
+scipy~=1.13
+pandas~=2.2.2
+matplotlib~=3.8.4
+openmdao~=3.26.0
 pytest==7.3.1
 pytest-cov== 4.0.0
-pyProbabilityDistributionFit== 0.0.5
+plotly~=5.22
+jupyter
+pyfe3d
+seaborn
+control
+geopandas
+geopy
 pymoo==0.6.0.1
+# Require pip install
+pyProbabilityDistributionFit==0.0.5
